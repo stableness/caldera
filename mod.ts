@@ -119,7 +119,7 @@ function tunnel (port: number, hostname: string) {
 
         } catch (e) {
 
-            if (e instanceof Deno.errors.BadResource) {
+            if (ignores(e) === true) {
                 return;
             }
 
@@ -128,6 +128,21 @@ function tunnel (port: number, hostname: string) {
         }
 
     };
+
+}
+
+
+
+
+function ignores (e: Error) {
+
+    return [
+
+        Deno.errors.BadResource,
+        Deno.errors.BrokenPipe,
+        Deno.errors.ConnectionReset,
+
+    ].some(clazz => e instanceof clazz);
 
 }
 
