@@ -43,7 +43,7 @@ const auth_store = run(function () {
 
 
 
-async function main () {
+export async function main () {
 
     const [ pHttp, pHttps ] = ports.trim().split(',');
 
@@ -73,7 +73,6 @@ async function main () {
 
 }
 
-void main();
 
 
 
