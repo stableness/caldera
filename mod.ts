@@ -87,41 +87,25 @@ type Handle = ReturnType<typeof on_request>;
 
 function on_request ({ auth }: Opts) {
 
-    const auth_store = run(function () {
-
-        try {
-            return new Set(Object
-                .entries(JSON.parse(Deno.readTextFileSync(auth!)))
-                .map(([ username, password ]) => btoa(username + ':' + password))
-                .map(data => 'Basic ' + data)
-            );
-        } catch {
-            return new Set();
-        }
-
-    });
+    const unauthorized = verify(auth);
 
     return (req: ServerRequest) => {
 
-        const { method, url, headers } = req;
-
-        if (method !== 'CONNECT') {
-            req.respond({ status: 204 });
-            return;
+        if (req.method !== 'CONNECT') {
+            return req.respond({ status: 204 });
         }
 
-        const authorization = headers.get('proxy-authorization') ?? 'wat';
-
-        if (auth_store.size > 0 && auth_store.has(authorization) === false) {
+        if (unauthorized(req.headers)) {
             return req.respond(auth_failure);
         }
 
-        const newURL = new URL(`http://${ url }`);
+        const newURL = new URL(`http://${ req.url }`);
 
         const { hostname } = newURL;
         const port = port_normalize(newURL);
 
         tunnel (port, hostname) (req);
+
     };
 
 }
@@ -162,6 +146,36 @@ function tunnel (port: number, hostname: string) {
 
 
 
+function verify (auth_path?: string) {
+
+    const store = run(() => {
+        try {
+            return new Set(Object
+                .entries(JSON.parse(Deno.readTextFileSync(auth_path!)))
+                .map(([ user, pass ]) => btoa(user + ':' + pass))
+                .map(data => 'Basic ' + data)
+            );
+        } catch {
+            return new Set();
+        }
+    });
+
+    console.info(store);
+
+    return function (headers: Headers) {
+
+        const entry = headers.get('proxy-authorization') ?? 'wat';
+
+        return store.size > 0 && store.has(entry) === false
+
+    };
+
+}
+
+
+
+
+
 function ignores (e: Error) {
 
     return [
@@ -186,9 +200,16 @@ const auth_failure: Response = {
     headers: new Headers({ 'Proxy-Authenticate': 'proxy auth' }),
 };
 
+
+
+
+
 function port_normalize ({ port, protocol }: URL) {
     return +port || (protocol === 'http:' ? 80 : 443);
 }
+
+
+
 
 
 function run (fn: Function) {
