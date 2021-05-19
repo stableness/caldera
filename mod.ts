@@ -56,7 +56,7 @@ function serve_http (opts: Opts, handle: Handle) {
 
     console.info(`http [${ port }]`);
 
-    return listenAndServe({ port }, handle);
+    return listenAndServe({ port }, handle).catch(tap_catch);
 
 }
 
@@ -75,7 +75,7 @@ function serve_https (opts: Opts, handle: Handle) {
 
     console.info(`https [${ port }]`);
 
-    return listenAndServeTLS({ port, certFile, keyFile }, handle);
+    return listenAndServeTLS({ port, certFile, keyFile }, handle).catch(tap_catch);
 
 }
 
@@ -204,6 +204,15 @@ const auth_failure: Response = {
 
 function port_normalize ({ port, protocol }: URL) {
     return +port || (protocol === 'http:' ? 80 : 443);
+}
+
+
+
+
+
+function tap_catch (err?: Error) {
+    console.error(err?.message ?? err?.name);
+    throw err;
 }
 
 
