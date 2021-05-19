@@ -3,7 +3,7 @@ HTTPS=8999
 ALLOWS=--allow-net --allow-read
 BIN=bin.ts
 AUTH=auth.json
-OUTPUT=output
+OUTPUT=dist
 
 TARGETS = x86_64-unknown-linux-gnu\
           x86_64-apple-darwin\
@@ -14,8 +14,8 @@ TARGETS = x86_64-unknown-linux-gnu\
 
 .PHONY: all clean start dev
 
-all: clean ${TARGETS}
-	@echo done
+all: clean ${OUTPUT}/lock.json ${TARGETS} ${OUTPUT}/checksum.txt
+	@ls -la ${OUTPUT}
 
 
 clean:
@@ -26,7 +26,17 @@ clean:
 
 
 ${TARGETS}:
-	@deno compile ${ALLOWS} --target $@ -o ./${OUTPUT}/caldera-$@ ${BIN}
+	@deno compile ${ALLOWS} --lock ${OUTPUT}/lock.json --target $@ -o ./${OUTPUT}/caldera-$@ ${BIN}
+
+
+${OUTPUT}/lock.json:
+	@deno cache ${BIN} --lock-write --lock $@
+
+
+${OUTPUT}/checksum.txt:
+	@sha256sum ${OUTPUT}/*[^.txt] > $@
+	@sed -i s#${OUTPUT}/## $@
+
 
 
 
