@@ -146,12 +146,12 @@ function tunnel (port: number, hostname: string) {
 
 
 
-function verify (auth_path?: string) {
+function verify (path?: string) {
 
     const store = run(() => {
         try {
             return new Set(Object
-                .entries(JSON.parse(Deno.readTextFileSync(auth_path!)))
+                .entries(JSON.parse(Deno.readTextFileSync(path!)))
                 .map(([ user, pass ]) => btoa(user + ':' + pass))
                 .map(data => 'Basic ' + data)
             );
@@ -159,8 +159,6 @@ function verify (auth_path?: string) {
             return new Set();
         }
     });
-
-    console.info(store);
 
     return function (headers: Headers) {
 
