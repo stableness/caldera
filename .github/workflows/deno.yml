@@ -14,4 +14,6 @@ jobs:
       - name: Setup Deno
         uses: denolib/setup-deno@v2.3.0
 
-      - run: make all
+      - run: |
+          make all
+          ls -l ./output
