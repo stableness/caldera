@@ -17,7 +17,21 @@ deno run -- https://deno.land/x/caldera/bin.ts --help
 
 
 
-## Usage
+## Auth json file example
+
+```json
+{
+    "foo": "bar",
+    "hello": "world",
+    "username": "password"
+}
+```
+
+
+
+
+
+## Server side
 
 ### serve HTTP
 
@@ -45,15 +59,23 @@ deno run --allow-net --allow-read -- https://deno.land/x/caldera/bin.ts --port.h
 
 
 
+## Client side
 
+### to http proxy
 
-## Auth json file example
+```
+curl -p -x http://localhost:9000   http://example.com
+```
 
-```json
-{
-    "foo": "bar",
-    "hello": "world",
-    "username": "password"
-}
+### to http proxy with basic auth
+
+```
+curl -p -x http://user:pass@localhost:9000   http://example.com
+```
+
+### to https proxy with self-signed certificate
+
+```
+curl -p -k -x https://localhost:9000   http://example.com
 ```
 
