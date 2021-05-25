@@ -99,10 +99,10 @@ function on_request ({ auth }: Opts) {
             return req.respond(auth_failure);
         }
 
-        const newURL = new URL(`http://${ req.url }`);
+        const url = new URL(`http://${ req.url }`);
 
-        const { hostname } = newURL;
-        const port = port_normalize(newURL);
+        const { hostname } = url;
+        const port = port_normalize(url);
 
         tunnel (port, hostname) (req);
 
