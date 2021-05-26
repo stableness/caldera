@@ -33,26 +33,22 @@ deno run -- https://deno.land/x/caldera/bin.ts --help
 
 ## Server side
 
-### serve HTTP
-
+serve HTTP
 ```
 deno run --allow-net -- https://deno.land/x/caldera/bin.ts --port.http=9000
 ```
 
-### with auth verification file
-
+with auth verification file
 ```
 deno run --allow-net --allow-read -- https://deno.land/x/caldera/bin.ts --port.http=9000 --auth=plain.json
 ```
 
-### serve HTTPs
-
+serve HTTPs
 ```
 deno run --allow-net --allow-read -- https://deno.land/x/caldera/bin.ts --port.https=9000
 ```
 
-### HTTPs with specified certificate files
-
+HTTPs with specified certificate files
 ```
 deno run --allow-net --allow-read -- https://deno.land/x/caldera/bin.ts --port.https=9000 --crt=cert.txt --key=key.txt
 ```
@@ -61,20 +57,17 @@ deno run --allow-net --allow-read -- https://deno.land/x/caldera/bin.ts --port.h
 
 ## Client side
 
-### to http proxy
-
+to http proxy
 ```
 curl -p -x http://localhost:9000   http://example.com
 ```
 
-### to http proxy with basic auth
-
+to http proxy with basic auth
 ```
 curl -p -x http://user:pass@localhost:9000   http://example.com
 ```
 
-### to https proxy with self-signed certificate
-
+to https proxy with self-signed certificate
 ```
 curl -p -k -x https://localhost:9000   http://example.com
 ```
