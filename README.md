@@ -69,6 +69,6 @@ curl -p -x http://user:pass@localhost:9000   http://example.com
 
 to https proxy with self-signed certificate
 ```
-curl -p -k -x https://localhost:9000   http://example.com
+curl -p --proxy-insecure -x https://localhost:9000   http://example.com
 ```
 
