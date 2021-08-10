@@ -1,17 +1,17 @@
 import {
     listenAndServe,
     listenAndServeTLS,
-} from 'https://deno.land/std@0.101.0/http/server.ts';
+} from 'https://deno.land/std@0.105.0/http/server.ts';
 
 import type {
     Response,
     ServerRequest,
-} from 'https://deno.land/std@0.101.0/http/server.ts';
+} from 'https://deno.land/std@0.105.0/http/server.ts';
 
 import {
     readableStreamFromReader as readable,
     writableStreamFromWriter as writable,
-} from 'https://deno.land/std@0.101.0/io/streams.ts';
+} from 'https://deno.land/std@0.105.0/io/streams.ts';
 
 
 
