@@ -164,7 +164,7 @@ function verify (path?: string) {
 
         const entry = headers.get('proxy-authorization') ?? 'wat';
 
-        return store.size > 0 && store.has(entry) === false
+        return store.size > 0 && store.has(entry) === false;
 
     };
 
