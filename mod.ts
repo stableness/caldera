@@ -1,11 +1,8 @@
 import {
     listenAndServe,
     listenAndServeTLS,
-} from 'https://deno.land/std@0.117.0/http/server_legacy.ts';
-
-import type {
-    Response,
-    ServerRequest,
+    type Response,
+    type ServerRequest,
 } from 'https://deno.land/std@0.117.0/http/server_legacy.ts';
 
 import {
