@@ -15,15 +15,15 @@ import {
 
 
 
-export type Opts = {
-    auth?: string,
-    port?: {
-        http?: number,
-        https?: number,
-    },
+export type Opts = Partial<{
+    auth: string,
+    port: Partial<{
+        http: number,
+        https: number,
+    }>,
     crt: string,
     key: string,
-}
+}>
 
 
 
@@ -65,10 +65,14 @@ function serve_http (opts: Opts, handle: Handle) {
 function serve_https (opts: Opts, handle: Handle) {
 
     const port = opts.port?.https ?? 0;
-    const { crt: certFile, key: keyFile } = opts;
+    const { crt: certFile = '', key: keyFile = '' } = opts;
 
     if (port < 1) {
         return Promise.reject(new Error('no https port'));
+    }
+
+    if (certFile === '' || keyFile === '') {
+        return Promise.reject(new Error('no cert or key file'));
     }
 
     console.info(`https [${ port }]`);
