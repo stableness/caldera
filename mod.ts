@@ -204,7 +204,7 @@ const auth_failure: Response = {
 
 
 
-function port_normalize ({ port, protocol }: URL) {
+export function port_normalize ({ port, protocol }: URL) {
     return +port || (protocol === 'http:' ? 80 : 443);
 }
 
