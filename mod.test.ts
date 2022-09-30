@@ -1,9 +1,11 @@
 import * as ast from 'https://deno.land/std@0.158.0/testing/asserts.ts';
+import * as mock from 'https://deno.land/std@0.158.0/testing/mock.ts';
 
 import {
 
     port_normalize,
     port_verify,
+    pre_verify,
 
 } from './mod.ts';
 
@@ -54,6 +56,68 @@ Deno.test('port_verify', () => {
     eq_undefined(-1);
     eq_undefined(4.2);
     eq_undefined(999999);
+
+});
+
+
+
+
+
+Deno.test('pre_verify', async () => {
+
+    const noop = mock.spy(() => {});
+
+    const verify = pre_verify(noop, path => new Promise((resolve, reject) => {
+        path instanceof URL ? reject() : resolve(path);
+    }));
+
+    const check = await verify(`{
+        "foo": "bar",
+        "admin": "password"
+    }`);
+
+    const mk_header = (user: string, pass: string) => new Headers({
+        'proxy-authorization': 'Basic ' + btoa(user + ':' + pass),
+    });
+
+    const mk_assert = (c: typeof check, b?: boolean) => (u: string, p: string) => {
+        ast.assertStrictEquals(c?.(mk_header(u, p)), b, `${ u } : ${ p }`);
+    }
+
+
+
+    {
+        const auth = mk_assert(check, true);
+
+        auth('foo', 'bar');
+        auth('admin', 'password');
+    }
+
+    {
+        const auth = mk_assert(check, false);
+
+        auth('a', 'b')
+        auth('FOO', 'bar');
+        auth('admin', 'PASSWORD');
+    }
+
+    {
+        const arr = [
+            '',
+            '  ',
+            '{]',
+            '{}',
+            'wat',
+            undefined,
+            new URL('http://a'),
+        ];
+
+        for (const v of await Promise.all(arr.map(verify))) {
+            mk_assert (v, undefined) ('hello', 'world');
+        }
+
+        mock.assertSpyCalls(noop, arr.length);
+    }
 
 });
 

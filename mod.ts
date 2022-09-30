@@ -29,9 +29,9 @@ export type Opts = Partial<{
 
 
 
-export function main (opts: Opts) {
+export async function main (opts: Opts) {
 
-    const handle = on_request(opts);
+    const handle = await on_request(opts);
 
     return Promise.allSettled([
         serve_http(opts, handle),
@@ -85,19 +85,19 @@ function serve_https (opts: Opts, handle: Handle) {
 
 
 
-type Handle = ReturnType<typeof on_request>;
+type Handle = Awaited<ReturnType<typeof on_request>>;
 
-function on_request ({ auth }: Opts) {
+async function on_request ({ auth }: Opts) {
 
-    const unauthorized = verify(auth);
+    const check = await verify(auth);
 
-    return (req: ServerRequest) => {
+    return function (req: ServerRequest) {
 
         if (req.method !== 'CONNECT') {
             return req.respond({ status: 204 });
         }
 
-        if (unauthorized(req.headers)) {
+        if (check && check(req.headers) === false) {
             return req.respond(auth_failure);
         }
 
@@ -106,7 +106,7 @@ function on_request ({ auth }: Opts) {
         const { hostname } = url;
         const port = port_normalize(url);
 
-        tunnel (port, hostname) (req);
+        return tunnel (port, hostname) (req);
 
     };
 
@@ -148,25 +148,47 @@ function tunnel (port: number, hostname: string) {
 
 
 
-function verify (path?: string) {
+const verify = pre_verify(console.warn, Deno.readTextFile);
 
-    const store = run(() => {
+export function pre_verify (
+        warn: typeof console.warn,
+        read_file: typeof Deno.readTextFile,
+) {
+
+    const NULL = 'get proxy-authorization from header with empty result';
+
+    return async function (path?: string | URL) {
+
+        if (path == null || (typeof path === 'string' && path.trim() === '')) {
+            return warn('no authorization required');
+        }
+
         try {
-            return new Set(Object
-                .entries(JSON.parse(Deno.readTextFileSync(path!)))
+
+            const file = await read_file(path);
+
+            const store = new Set(Object
+                .entries(JSON.parse(file))
                 .map(([ user, pass ]) => btoa(user + ':' + pass))
                 .map(data => 'Basic ' + data)
             );
-        } catch {
-            return new Set();
+
+            if (store.size < 1) {
+                throw new Error('empty auth file');
+            }
+
+            return function (headers: Headers) {
+                return store.has(headers.get('proxy-authorization') ?? NULL);
+            };
+
+        } catch (e: unknown) {
+
+            return e instanceof Error
+                ? warn(path, '<-', e.cause ?? e.message)
+                : warn('fail to read auth file')
+            ;
+
         }
-    });
-
-    return function (headers: Headers) {
-
-        const entry = headers.get('proxy-authorization') ?? 'wat';
-
-        return store.size > 0 && store.has(entry) === false;
 
     };
 
@@ -244,13 +266,5 @@ export const port_verify = safe_int({ min: 0, max: 65535 });
 function tap_catch (err?: Error) {
     console.error(err?.message ?? err?.name);
     throw err;
-}
-
-
-
-
-
-function run (fn: Function) {
-    return fn();
 }
 
