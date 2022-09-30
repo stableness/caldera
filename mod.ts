@@ -1,14 +1,15 @@
 import {
+
+    readable,
+    writable,
+
     listenAndServe,
     listenAndServeTLS,
+
     type Response,
     type ServerRequest,
-} from 'https://deno.land/std@0.117.0/http/server_legacy.ts';
 
-import {
-    readableStreamFromReader as readable,
-    writableStreamFromWriter as writable,
-} from 'https://deno.land/std@0.117.0/streams/mod.ts';
+} from './deps.ts';
 
 
 
