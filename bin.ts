@@ -1,29 +1,28 @@
 import { main } from './mod.ts'
 
-import { Command } from 'https://deno.land/x/cliffy@v0.20.1/command/mod.ts';
-
-
-
-
-const { options } = await new Command()
-
-    .name('caldera')
-
-    .option('--auth [auth]', 'path to auth file (json)')
-
-    .option('--port.http [http:number]', 'http port')
-
-    .option('--port.https [https:number]', 'https port')
-    .option('--crt [crt]', 'path to certificate file', { default: 'server.crt' })
-    .option('--key [key]', 'path to certificate key', { default: 'server.key' })
-
-    .parse(Deno.args)
-
-;
+import { parse } from 'https://deno.land/std@0.158.0/flags/mod.ts';
 
 
 
 
 
-main(options).catch(console.error);
+const { port: port_, ...rest } = parse(Deno.args, {
+    string: [ 'auth', 'crt', 'key' ],
+    default: {
+        port: {
+            http: 0,
+            https: 0,
+        },
+        crt: 'server.crt',
+        key: 'server.key',
+    }
+});
+
+const port = { http: 0, https: 0, ...port_ ?? {} };
+
+
+
+
+
+main({ port, ...rest }).catch(console.error);
 
