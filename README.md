@@ -2,11 +2,6 @@
 
 ## Options
 
-```
-deno run -- https://deno.land/x/caldera/bin.ts --help
-```
-
-    -h, --help    - Show this help.                                  
     --auth        - path to auth file (json)                         
     --port.http   - http port                                        
     --port.https  - https port                                       
