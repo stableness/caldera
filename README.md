@@ -1,5 +1,11 @@
 # Caldera
 
+[![codecov](https://codecov.io/gh/stableness/caldera/branch/master/graph/badge.svg)](https://codecov.io/gh/stableness/caldera)
+
+
+
+
+
 ## Options
 
     --auth        - path to auth file (json)                         
