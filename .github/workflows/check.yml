@@ -19,5 +19,10 @@ jobs:
 
       - run: deno lint
 
-      - run: deno test
+      - run: deno test --coverage=cov/
+
+      - run: deno coverage --lcov cov/ > cov.lcov
+
+      - uses: codecov/codecov-action@v3
+        timeout-minutes: 1
 
