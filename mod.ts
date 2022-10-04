@@ -46,7 +46,7 @@ export function main (opts: Opts) {
 
 function serve_http (opts: Opts, handle: Handle) {
 
-    const port = opts.port?.http ?? 0;
+    const port = port_verify(opts.port?.http) ?? 0;
 
     if (port < 1) {
         return Promise.reject(new Error('no http port'));
@@ -64,7 +64,7 @@ function serve_http (opts: Opts, handle: Handle) {
 
 function serve_https (opts: Opts, handle: Handle) {
 
-    const port = opts.port?.https ?? 0;
+    const port = port_verify(opts.port?.https) ?? 0;
     const { crt: certFile = '', key: keyFile = '' } = opts;
 
     if (port < 1) {
@@ -207,6 +207,35 @@ const auth_failure: Response = {
 export function port_normalize ({ port, protocol }: URL) {
     return +port || (protocol === 'http:' ? 80 : 443);
 }
+
+
+
+
+
+export function safe_int ({
+        min = Number.MIN_SAFE_INTEGER,
+        max = Number.MAX_SAFE_INTEGER,
+}) {
+
+    return function (n: unknown): number | undefined {
+
+        if (   typeof n === 'number'
+            && Number.isSafeInteger(n)
+            && n >= min
+            && n <= max
+        ) {
+            return n;
+        }
+
+    };
+
+}
+
+
+
+
+
+export const port_verify = safe_int({ min: 0, max: 65535 });
 
 
 
