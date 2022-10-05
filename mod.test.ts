@@ -7,6 +7,7 @@ import {
     port_verify,
     pre_verify,
     pre_tap_catch,
+    ignores,
 
 } from './mod.ts';
 
@@ -174,4 +175,48 @@ Deno.test('pre_tap_catch', () => {
     }
 
 });
+
+
+
+
+
+Deno.test('ignores', () => {
+
+    {
+        const arr = [
+
+            Deno.errors.BadResource,
+            Deno.errors.BrokenPipe,
+            Deno.errors.ConnectionReset,
+
+        ];
+
+        for (const clazz of arr) {
+            ast.assert(
+                ignores(new clazz()),
+                `${ clazz.name } to be ignored}`,
+            );
+        }
+    }
+
+    {
+        const arr = [
+
+            TypeError,
+            RangeError,
+            Deno.errors.NotConnected,
+            Deno.errors.PermissionDenied,
+
+        ];
+
+        for (const clazz of arr) {
+            ast.assertFalse(
+                ignores(new clazz()),
+                `${ clazz.name } to not be ignored}`,
+            );
+        }
+    }
+
+});
+
 
