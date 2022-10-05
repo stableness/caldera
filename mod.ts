@@ -197,7 +197,7 @@ export function pre_verify (
 
 
 
-function ignores (e: Error) {
+export function ignores (e: Error) {
 
     return [
 
