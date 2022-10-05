@@ -44,61 +44,75 @@ export async function main (opts: Opts) {
 
 
 
-function serve_http (opts: Opts, handle: Handle) {
-
-    const port = port_verify(opts.port?.http) ?? 0;
-
-    if (port < 1) {
-        return Promise.reject(new Error('no http port'));
-    }
-
-    console.info(`http [${ port }]`);
-
-    return listenAndServe({ port }, handle).catch(tap_catch);
-
-}
 
 
 
+export const pre_serves = ({
+        serve = listenAndServe,
+        serve_TLS = listenAndServeTLS,
+        read_file = Deno.readTextFile,
+        info = console.info,
+}) => ({
+
+    serve_http (opts: Opts, handle: Handle) {
+
+        const port = port_verify(opts.port?.http) ?? 0;
+
+        if (port < 1) {
+            return Promise.reject(new Error('no http port'));
+        }
+
+        info(`http [${ port }]`);
+
+        return serve({ port }, handle).catch(tap_catch);
+
+    },
+
+    async serve_https (opts: Opts, handle: Handle) {
+
+        const port = port_verify(opts.port?.https) ?? 0;
+
+        if (port < 1) {
+            throw new Error('no https port');
+        }
+
+        const { key: opts_key, crt: opts_cert } = opts;
+
+        if (opts_key == null || opts_cert == null) {
+            throw new Error('no key or cert file');
+        }
+
+        const key = await read_file(opts_key);
+        const cert = await read_file(opts_cert);
+
+        info(`https [${ port }]`);
+
+        return serve_TLS({ port, key, cert }, handle).catch(tap_catch);
+
+    },
+
+});
+
+const { serve_http, serve_https } = pre_serves({});
 
 
-function serve_https (opts: Opts, handle: Handle) {
-
-    const port = port_verify(opts.port?.https) ?? 0;
-    const { crt: certFile = '', key: keyFile = '' } = opts;
-
-    if (port < 1) {
-        return Promise.reject(new Error('no https port'));
-    }
-
-    if (certFile === '' || keyFile === '') {
-        return Promise.reject(new Error('no cert or key file'));
-    }
-
-    console.info(`https [${ port }]`);
-
-    return listenAndServeTLS({ port, certFile, keyFile }, handle).catch(tap_catch);
-
-}
 
 
 
-
-
-type Handle = Awaited<ReturnType<typeof on_request>>;
+export type Handle = Awaited<ReturnType<typeof on_request>>;
 
 async function on_request ({ auth }: Opts) {
 
     const check = await verify(auth);
 
-    return function (req: ServerRequest) {
+    return function (req: ServerRequest): void {
 
         if (req.method !== 'CONNECT') {
-            return req.respond({ status: 204 });
+            return void req.respond({ status: 204 });
         }
 
         if (check && check(req.headers) === false) {
-            return req.respond(auth_failure);
+            return void req.respond(auth_failure);
         }
 
         const url = new URL(`http://${ req.url }`);
@@ -106,7 +120,7 @@ async function on_request ({ auth }: Opts) {
         const { hostname } = url;
         const port = port_normalize(url);
 
-        return tunnel (port, hostname) (req);
+        tunnel (port, hostname) (req);
 
     };
 

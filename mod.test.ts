@@ -3,10 +3,20 @@ import * as mock from 'https://deno.land/std@0.158.0/testing/mock.ts';
 
 import {
 
+    type ServerRequest,
+
+} from './deps.ts'
+
+import {
+
+    type Opts,
+    type Handle,
+
     port_normalize,
     port_verify,
     pre_verify,
     pre_tap_catch,
+    pre_serves,
     ignores,
 
 } from './mod.ts';
@@ -219,4 +229,65 @@ Deno.test('ignores', () => {
 
 });
 
+
+
+
+
+Deno.test('pre_serves', async () => {
+
+    const info = (_: ServerRequest) => { };
+    const handle = mock.spy(info);
+
+    const serving = <T> (_: T, cb: Handle) => {
+        return Promise.resolve(cb({} as never));
+    };
+
+    const read_file = (path?: string | URL) => {
+        return new Promise<string>((resolve, reject) => {
+            path === '' ? reject() : resolve('file');
+        });
+    };
+
+    const {
+        serve_http,
+        serve_https,
+    } = pre_serves({ info, read_file, serve: serving, serve_TLS: serving });
+
+    const serve = (o: Opts) => [
+        serve_http(o, handle),
+        serve_https(o, handle),
+    ];
+
+    const http = 41;
+    const https = 42;
+    const key = 'key';
+    const crt = 'crt';
+
+    {
+
+        const arr: ReadonlyArray<Opts> = [
+            {},
+            { port: {} },
+            { port: { http: -1 } },
+            { port: { https: -1 } },
+            { port: { https }, key },
+            { port: { https }, key, crt: '' },
+            { port: { https }, crt, key: '' },
+            { port: { https }, key: '', crt: '' },
+        ];
+
+        const result = await Promise.allSettled(arr.flatMap(serve));
+
+        ast.assert(
+            result.every(r => r.status === 'rejected'),
+            'reject on invalid options',
+        );
+
+    }
+
+    await Promise.all(serve({ port: { http, https }, key, crt }));
+
+    mock.assertSpyCalls(handle, 2);
+
+});
 
