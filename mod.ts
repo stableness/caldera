@@ -262,8 +262,14 @@ export const port_verify = safe_int({ min: 0, max: 65535 });
 
 
 
-function tap_catch (err?: Error) {
-    console.error(err?.message ?? err?.name);
-    throw err;
+const tap_catch = pre_tap_catch(console.error);
+
+export function pre_tap_catch (error: typeof console.error) {
+
+    return function pre_tap_catch (err?: Error) {
+        error(err?.cause ?? (err?.message || err?.name));
+        throw err;
+    }
+
 }
 
