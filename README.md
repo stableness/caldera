@@ -1,6 +1,6 @@
 # Caldera
 
-[![codecov](https://codecov.io/gh/stableness/caldera/branch/master/graph/badge.svg)](https://codecov.io/gh/stableness/caldera)
+[![codecov](https://codecov.io/gh/stableness/caldera/branch/master/graph/badge.svg?token=4AOC9D1CXA)](https://codecov.io/gh/stableness/caldera)
 
 
 
