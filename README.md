@@ -1,5 +1,6 @@
 # Caldera
 
+[![Latest Version](https://img.shields.io/endpoint?url=https%3A%2F%2Fapiland.deno.dev%2Fshields%2Fcaldera%2Fversion)](https://deno.land/x/caldera)
 [![Check](https://github.com/stableness/caldera/actions/workflows/check.yml/badge.svg)](https://github.com/stableness/caldera/actions)
 [![codecov](https://codecov.io/gh/stableness/caldera/branch/master/graph/badge.svg?token=4AOC9D1CXA)](https://codecov.io/gh/stableness/caldera)
 
