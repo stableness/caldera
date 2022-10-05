@@ -6,6 +6,7 @@ import {
     port_normalize,
     port_verify,
     pre_verify,
+    pre_tap_catch,
 
 } from './mod.ts';
 
@@ -130,6 +131,46 @@ Deno.test('pre_verify', async () => {
         }
 
         mock.assertSpyCalls(noop, arr.length);
+    }
+
+});
+
+
+
+
+
+Deno.test('pre_tap_catch', () => {
+
+    const noop = mock.spy(() => {});
+    const tap = pre_tap_catch(noop);
+
+    const name = 'Name';
+    const cause = 'Cause';
+    const message = 'Message';
+
+
+
+    {
+        const err = new RangeError();
+        ast.assertThrows(() => tap(err));
+        mock.assertSpyCall(noop, 0, { args: [ 'RangeError' ] });
+    }
+
+    {
+        const err = new Error();
+        err.name = name;
+        ast.assertThrows(() => tap(err));
+        mock.assertSpyCall(noop, 1, { args: [ name ] });
+    }
+
+    {
+        ast.assertThrows(() => tap(new Error(message)), message);
+        mock.assertSpyCall(noop, 2, { args: [ message ] });
+    }
+
+    {
+        ast.assertThrows(() => tap(new Error(message, { cause })), message);
+        mock.assertSpyCall(noop, 3, { args: [ cause ] });
     }
 
 });
