@@ -110,26 +110,33 @@ const { serve_http, serve_https } = pre_serves({});
 
 export type Handle = Awaited<ReturnType<typeof on_request>>;
 
-async function on_request ({ auth }: Opts) {
+export function pre_on_request({
+    verify_ = verify,
+    tunnel_ = tunnel,
+}) {
 
-    const check = auth && await verify(new URL(auth, import.meta.url));
+    return async function ({ auth }: Opts) {
 
-    return function (req: ServerRequest): void {
+        const check = auth && await verify_(new URL(auth, import.meta.url));
 
-        if (req.method !== 'CONNECT') {
-            return void req.respond({ status: 204 });
-        }
+        return function (req: ServerRequest): void {
 
-        if (check && check(req.headers) === false) {
-            return void req.respond(auth_failure);
-        }
+            if (req.method !== 'CONNECT') {
+                return void req.respond({ status: 204 });
+            }
 
-        const url = new URL(`http://${ req.url }`);
+            if (check && check(req.headers) === false) {
+                return void req.respond(auth_failure);
+            }
 
-        const { hostname } = url;
-        const port = port_normalize(url);
+            const url = new URL(`http://${ req.url }`);
 
-        tunnel (port, hostname) (req);
+            const { hostname } = url;
+            const port = port_normalize(url);
+
+            tunnel_ (port, hostname) (req);
+
+        };
 
     };
 
@@ -217,6 +224,12 @@ export function pre_verify ({
     };
 
 }
+
+
+
+
+
+const on_request = pre_on_request({});
 
 
 
