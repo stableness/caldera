@@ -1,9 +1,12 @@
+// deno-lint-ignore-file no-unused-labels
+
 import * as ast from 'https://deno.land/std@0.159.0/testing/asserts.ts';
 import * as mock from 'https://deno.land/std@0.159.0/testing/mock.ts';
 
 import {
 
-    type ServerRequest,
+    ServerRequest,
+    type Response,
 
 } from './deps.ts'
 
@@ -18,6 +21,7 @@ import {
     pre_tap_catch,
     pre_serves,
     ignores,
+    pre_on_request,
 
 } from './mod.ts';
 
@@ -303,6 +307,103 @@ Deno.test('pre_serves', async () => {
     await Promise.all(serve({ port: { http, https }, key, crt }));
 
     mock.assertSpyCalls(handle, 2);
+
+});
+
+
+
+
+
+Deno.test('pre_on_request', async () => {
+
+    const tunnel_ = mock.spy(
+        (_p: number, _h: string) => (_req: ServerRequest) => Promise.resolve()
+    );
+
+    const on_request = pre_on_request({
+
+        tunnel_,
+
+        verify_: input => Promise.resolve(
+            input instanceof URL
+                ? _ => input.href.endsWith('admin')
+                : undefined
+        ),
+
+    });
+
+    const host = 'foobar';
+    const port = 8080;
+    const hostname = `${ host }:${ port }`;
+
+    GET: {
+
+        const handle = await on_request({});
+
+        const respond = mock.spy((res: Response) => Promise.resolve(
+            ast.assertNotStrictEquals(res.status, 200),
+        ));
+
+        const req = new ServerRequest();
+
+        req.method = 'GET';
+        req.respond = respond;
+
+        handle(req);
+
+        mock.assertSpyCalls(respond, 1);
+
+    }
+
+    CONNECT_without_auth: {
+
+        const handle = await on_request({});
+
+        const req = new ServerRequest();
+
+        req.url = hostname;
+        req.method = 'CONNECT';
+
+        handle(req);
+
+        mock.assertSpyCallArgs(tunnel_, 0, 0, [ port, host ]);
+
+    }
+
+    CONNECT_with_auth_by_guest: {
+
+        const handle = await on_request({ auth: 'guest' });
+
+        const respond = mock.spy((res: Response) => Promise.resolve(
+            ast.assertStrictEquals(res.status, 407),
+        ));
+
+        const req = new ServerRequest();
+
+        req.url = hostname;
+        req.method = 'CONNECT';
+        req.respond = respond;
+
+        handle(req);
+
+        mock.assertSpyCalls(respond, 1);
+
+    }
+
+    CONNECT_with_auth_by_admin: {
+
+        const handle = await on_request({ auth: 'admin' });
+
+        const req = new ServerRequest();
+
+        req.url = hostname;
+        req.method = 'CONNECT';
+
+        handle(req);
+
+        mock.assertSpyCallArgs(tunnel_, 1, 0, [ port, host ]);
+
+    }
 
 });
 
