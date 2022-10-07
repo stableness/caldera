@@ -81,15 +81,23 @@ Deno.test('pre_verify', async () => {
 
     const auth_header = 'proxy-authorization';
 
-    const verify = pre_verify({
-        warn,
-        auth_header,
-        read_file (path) {
-            return new Promise((resolve, reject) => {
-                path instanceof URL ? reject() : resolve(path);
-            });
-        },
-    });
+    const read_file = (input: string | URL) => {
+        return new Promise<string>((resolve, reject) => {
+            if (input instanceof URL) {
+                if (input.hash.startsWith('#')) {
+                    resolve(decodeURIComponent(input.hash.slice(1)));
+                } else {
+                    reject()
+                }
+            } else {
+                resolve(input);
+            }
+        });
+    };
+
+    const verify = pre_verify({ warn, auth_header, read_file });
+
+    await verify(new URL('http://foobar#{ "a": 1 }'));
 
     const check = await verify(`{
         "foo": "bar",
@@ -141,7 +149,6 @@ Deno.test('pre_verify', async () => {
             '{]',
             '{}',
             'wat',
-            undefined,
             new URL('http://a'),
         ];
 
