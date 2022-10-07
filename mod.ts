@@ -112,7 +112,7 @@ export type Handle = Awaited<ReturnType<typeof on_request>>;
 
 async function on_request ({ auth }: Opts) {
 
-    const check = await verify(auth);
+    const check = auth && await verify(new URL(auth, import.meta.url));
 
     return function (req: ServerRequest): void {
 
@@ -179,18 +179,17 @@ export function pre_verify ({
         warn = console.warn,
 }) {
 
-    return async function (path?: string | URL) {
-
-        if (path == null || (typeof path === 'string' && path.trim() === '')) {
-            return warn('no authorization required');
-        }
+    return async function (input: string | URL) {
 
         try {
 
-            const file = await read_file(path);
+            const data = typeof input === 'string'
+                ? input
+                : await read_file(input)
+            ;
 
             const store = new Set(Object
-                .entries(JSON.parse(file))
+                .entries(JSON.parse(data))
                 .map(([ user, pass ]) => btoa(user + ':' + pass))
                 .map(data => 'Basic ' + data)
             );
@@ -206,10 +205,12 @@ export function pre_verify ({
 
         } catch (e: unknown) {
 
-            return e instanceof Error
-                ? warn(path, '<-', e.cause ?? e.message)
-                : warn('fail to read auth file')
+            const detail = e instanceof Error
+                ? `: ${ e.cause ?? e.message }`
+                : ''
             ;
+
+            warn('fail to read auth file' + detail);
 
         }
 
