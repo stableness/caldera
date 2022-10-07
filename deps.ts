@@ -8,5 +8,5 @@ export {
 export {
     readableStreamFromReader as readable,
     writableStreamFromWriter as writable,
-} from 'https://deno.land/std@0.158.0/streams/mod.ts';
+} from 'https://deno.land/std@0.159.0/streams/mod.ts';
 

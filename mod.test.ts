@@ -1,5 +1,5 @@
-import * as ast from 'https://deno.land/std@0.158.0/testing/asserts.ts';
-import * as mock from 'https://deno.land/std@0.158.0/testing/mock.ts';
+import * as ast from 'https://deno.land/std@0.159.0/testing/asserts.ts';
+import * as mock from 'https://deno.land/std@0.159.0/testing/mock.ts';
 
 import {
 
