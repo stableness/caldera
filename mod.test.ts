@@ -77,11 +77,19 @@ Deno.test('port_verify', () => {
 
 Deno.test('pre_verify', async () => {
 
-    const noop = mock.spy(() => {});
+    const warn = mock.spy(() => {});
 
-    const verify = pre_verify(noop, path => new Promise((resolve, reject) => {
-        path instanceof URL ? reject() : resolve(path);
-    }));
+    const auth_header = 'proxy-authorization';
+
+    const verify = pre_verify({
+        warn,
+        auth_header,
+        read_file (path) {
+            return new Promise((resolve, reject) => {
+                path instanceof URL ? reject() : resolve(path);
+            });
+        },
+    });
 
     const check = await verify(`{
         "foo": "bar",
@@ -89,7 +97,7 @@ Deno.test('pre_verify', async () => {
     }`);
 
     const mk_header = (user: string, pass: string) => new Headers({
-        'proxy-authorization': 'Basic ' + btoa(user + ':' + pass),
+        [auth_header]: 'Basic ' + btoa(user + ':' + pass),
     });
 
     const mk_assert = (c: typeof check, b?: boolean, h?: Headers) => {
@@ -141,7 +149,7 @@ Deno.test('pre_verify', async () => {
             mk_assert (v, undefined) ('hello', 'world');
         }
 
-        mock.assertSpyCalls(noop, arr.length);
+        mock.assertSpyCalls(warn, arr.length);
     }
 
 });

@@ -171,12 +171,13 @@ function tunnel (port: number, hostname: string) {
 
 
 
-const verify = pre_verify(console.warn, Deno.readTextFile);
+const verify = pre_verify({});
 
-export function pre_verify (
-        warn: typeof console.warn,
-        read_file: typeof Deno.readTextFile,
-) {
+export function pre_verify ({
+        read_file = Deno.readTextFile,
+        auth_header = 'proxy-authorization',
+        warn = console.warn,
+}) {
 
     return async function (path?: string | URL) {
 
@@ -199,7 +200,7 @@ export function pre_verify (
             }
 
             return function (headers: Headers) {
-                const pa = headers.get('proxy-authorization');
+                const pa = headers.get(auth_header);
                 return pa != null && store.has(pa);
             };
 
