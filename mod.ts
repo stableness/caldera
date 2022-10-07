@@ -33,15 +33,24 @@ export async function main (opts: Opts) {
 
     const handle = await on_request(opts);
 
-    return Promise.allSettled([
+    const [ http, https ] = await Promise.allSettled([
         serve_http(opts, handle),
         serve_https(opts, handle),
     ]);
 
+    if (http.status === 'rejected' && https.status === 'rejected') {
+
+        const cause = [
+            '',
+            http.reason,
+            https.reason,
+        ].join('\n');
+
+        throw new Error('program exited', { cause });
+
+    }
+
 }
-
-
-
 
 
 
