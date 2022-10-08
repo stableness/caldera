@@ -111,13 +111,13 @@ const { serve_http, serve_https } = pre_serves({});
 export type Handle = Awaited<ReturnType<typeof on_request>>;
 
 export function pre_on_request({
-    verify_ = verify,
-    tunnel_ = tunnel,
+    verify = verify_auth,
+    tunnel = tunnel_to,
 }) {
 
     return async function ({ auth }: Opts) {
 
-        const check = auth && await verify_(new URL(auth, import.meta.url));
+        const check = auth && await verify(new URL(auth, import.meta.url));
 
         return function (req: ServerRequest): void {
 
@@ -134,7 +134,7 @@ export function pre_on_request({
             const { hostname } = url;
             const port = port_normalize(url);
 
-            tunnel_ (port, hostname) (req);
+            tunnel (port, hostname) (req);
 
         };
 
@@ -146,7 +146,7 @@ export function pre_on_request({
 
 
 
-function tunnel (port: number, hostname: string) {
+function tunnel_to (port: number, hostname: string) {
 
     return async function ({ conn: res }: ServerRequest) {
 
@@ -178,7 +178,7 @@ function tunnel (port: number, hostname: string) {
 
 
 
-const verify = pre_verify({});
+const verify_auth = pre_verify({});
 
 export function pre_verify ({
         read_file = Deno.readTextFile,
