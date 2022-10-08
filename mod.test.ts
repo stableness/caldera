@@ -316,15 +316,15 @@ Deno.test('pre_serves', async () => {
 
 Deno.test('pre_on_request', async () => {
 
-    const tunnel_ = mock.spy(
+    const tunnel = mock.spy(
         (_p: number, _h: string) => (_req: ServerRequest) => Promise.resolve()
     );
 
     const on_request = pre_on_request({
 
-        tunnel_,
+        tunnel,
 
-        verify_: input => Promise.resolve(
+        verify: input => Promise.resolve(
             input instanceof URL
                 ? _ => input.href.endsWith('admin')
                 : undefined
@@ -366,7 +366,7 @@ Deno.test('pre_on_request', async () => {
 
         handle(req);
 
-        mock.assertSpyCallArgs(tunnel_, 0, 0, [ port, host ]);
+        mock.assertSpyCallArgs(tunnel, 0, 0, [ port, host ]);
 
     }
 
@@ -401,7 +401,7 @@ Deno.test('pre_on_request', async () => {
 
         handle(req);
 
-        mock.assertSpyCallArgs(tunnel_, 1, 0, [ port, host ]);
+        mock.assertSpyCallArgs(tunnel, 1, 0, [ port, host ]);
 
     }
 
