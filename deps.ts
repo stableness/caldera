@@ -10,3 +10,7 @@ export {
     writableStreamFromWriter as writable,
 } from 'https://deno.land/std@0.159.0/streams/mod.ts';
 
+export {
+    abortablePromise,
+} from 'https://deno.land/std@0.159.0/async/mod.ts';
+
