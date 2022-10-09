@@ -22,6 +22,7 @@ import {
     pre_serves,
     ignores,
     pre_on_request,
+    main,
 
 } from './mod.ts';
 
@@ -404,6 +405,16 @@ Deno.test('pre_on_request', async () => {
         mock.assertSpyCallArgs(tunnel, 1, 0, [ port, host ]);
 
     }
+
+});
+
+
+
+
+
+Deno.test('main', async () => {
+
+    await ast.assertRejects(() => main({}), Error, 'program exited');
 
 });
 
