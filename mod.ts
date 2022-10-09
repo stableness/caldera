@@ -137,7 +137,7 @@ export function pre_on_request({
             const { hostname } = url;
             const port = port_normalize(url);
 
-            tunnel (port, hostname) (req);
+            tunnel (port, hostname) (req.conn);
 
         };
 
@@ -149,29 +149,44 @@ export function pre_on_request({
 
 
 
-function tunnel_to (port: number, hostname: string) {
+const established = new TextEncoder().encode('HTTP/1.0 200\r\n\r\n');
 
-    return async function ({ conn: res }: ServerRequest) {
+const tunnel_to = pre_tunnel_to({});
 
-        try {
+type Duplex = Deno.Reader & Deno.Writer;
+type Connect = (_: Deno.ConnectOptions) => Promise<Duplex>;
 
-            const req = await Deno.connect({ hostname, port });
+/* @internal */
+export function pre_tunnel_to ({
+        connect = Deno.connect as Connect,
+        ignoring = ignores,
+        head = established,
+        error = console.error,
+}) {
 
-            await Promise.all([
-                res.write(established),
-                readable(req).pipeTo(writable(res)),
-                readable(res).pipeTo(writable(req)),
-            ]);
+    return function (port: number, hostname: string) {
 
-        } catch (e) {
+        return async function (res: Duplex) {
 
-            if (ignores(e) === true) {
-                return;
+            try {
+
+                const req = await connect({ hostname, port });
+
+                await Promise.all([
+                    res.write(head),
+                    readable(req).pipeTo(writable(res)),
+                    readable(res).pipeTo(writable(req)),
+                ]);
+
+            } catch (e) {
+
+                if (ignoring(e) === false) {
+                    error(e);
+                }
+
             }
 
-            console.error(e);
-
-        }
+        };
 
     };
 
@@ -255,8 +270,6 @@ export function ignores (e: Error) {
 
 
 
-
-const established = new TextEncoder().encode('HTTP/1.0 200\r\n\r\n');
 
 const auth_failure: Response = {
     status: 407,
