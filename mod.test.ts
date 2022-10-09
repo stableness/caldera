@@ -515,7 +515,7 @@ Deno.test('pre_tunnel_to', async () => {
         const err = new RangeError();
 
         const req = new Duplex(body, err);
-        const res = new Duplex(body);
+        const res = new Duplex(body, err);
 
         const error = mock.spy(() => { });
 

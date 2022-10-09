@@ -3,6 +3,8 @@ import {
     readable,
     writable,
 
+    abortablePromise,
+
     listenAndServe,
     listenAndServeTLS,
 
@@ -168,17 +170,22 @@ export function pre_tunnel_to ({
 
         return async function (res: Duplex) {
 
+            const ctrl = new AbortController();
+            const { signal } = ctrl;
+
             try {
 
                 const req = await connect({ hostname, port });
 
                 await Promise.all([
-                    res.write(head),
-                    readable(req).pipeTo(writable(res)),
-                    readable(res).pipeTo(writable(req)),
+                    abortablePromise(res.write(head), signal),
+                    readable(req).pipeTo(writable(res), { signal }),
+                    readable(res).pipeTo(writable(req), { signal }),
                 ]);
 
             } catch (e: unknown) {
+
+                ctrl.abort(e);
 
                 if (ignoring(e) === false) {
                     error(e);
