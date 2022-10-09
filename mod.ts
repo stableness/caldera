@@ -178,7 +178,7 @@ export function pre_tunnel_to ({
                     readable(res).pipeTo(writable(req)),
                 ]);
 
-            } catch (e) {
+            } catch (e: unknown) {
 
                 if (ignoring(e) === false) {
                     error(e);
@@ -255,7 +255,7 @@ const on_request = pre_on_request({});
 
 
 /* @internal */
-export function ignores (e: Error) {
+export function ignores (e: unknown) {
 
     return [
 
