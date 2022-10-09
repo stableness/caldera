@@ -3,6 +3,8 @@
 import * as ast from 'https://deno.land/std@0.159.0/testing/asserts.ts';
 import * as mock from 'https://deno.land/std@0.159.0/testing/mock.ts';
 
+import { concat } from 'https://deno.land/std@0.159.0/bytes/mod.ts';
+
 import {
 
     ServerRequest,
@@ -22,6 +24,7 @@ import {
     pre_serves,
     ignores,
     pre_on_request,
+    pre_tunnel_to,
     main,
 
 } from './mod.ts';
@@ -318,7 +321,7 @@ Deno.test('pre_serves', async () => {
 Deno.test('pre_on_request', async () => {
 
     const tunnel = mock.spy(
-        (_p: number, _h: string) => (_req: ServerRequest) => Promise.resolve()
+        (_p: number, _h: string) => (_req: unknown) => Promise.resolve()
     );
 
     const on_request = pre_on_request({
@@ -415,6 +418,119 @@ Deno.test('pre_on_request', async () => {
 Deno.test('main', async () => {
 
     await ast.assertRejects(() => main({}), Error, 'program exited');
+
+});
+
+
+
+
+
+Deno.test('pre_tunnel_to', async () => {
+
+    class Duplex implements Deno.Reader, Deno.Writer {
+
+        #used = false
+        #sink = Uint8Array.of()
+
+        constructor (
+            private readonly init: Uint8Array,
+            private readonly error?: Error,
+        ) {
+        }
+
+        read (p: Uint8Array): Promise<number | null> {
+
+            if (this.error != null) {
+                return Promise.reject(this.error);
+            }
+
+            if (this.#used) {
+                return Promise.resolve(null);
+            }
+
+            p.set(this.init);
+            this.#used = true;
+            return Promise.resolve(this.init.byteLength);
+
+        }
+
+        write (p: Uint8Array): Promise<number> {
+
+            if (this.error != null) {
+                return Promise.reject(this.error);
+            }
+
+            this.#sink = concat(this.#sink, p);
+            return Promise.resolve(p.byteLength);
+
+        }
+
+        collect (): Uint8Array {
+            return this.#sink;
+        }
+
+    }
+
+
+
+    const port = 8080;
+    const hostname = 'localhost';
+
+    const head = Uint8Array.of(0);
+    const body = Uint8Array.from([ 1, 2, 3 ]);
+
+    { // succeeded with no error
+
+        const req = new Duplex(body);
+        const res = new Duplex(body);
+
+        const error = mock.spy(() => { });
+
+        const connect = mock.spy((_opts: Deno.ConnectOptions) => {
+            return Promise.resolve(req);
+        });
+
+        const tunnel = pre_tunnel_to({
+            head,
+            error,
+            connect,
+            ignoring: _ => false,
+        });
+
+        await tunnel (port, hostname) (res);
+
+        mock.assertSpyCallArg(connect, 0, 0, { port, hostname });
+
+        mock.assertSpyCalls(error, 0);
+
+        ast.assertEquals(
+            concat(head, req.collect()),
+            res.collect(),
+        );
+
+    }
+
+    { // logging error while tunneling
+
+        const err = new RangeError();
+
+        const req = new Duplex(body, err);
+        const res = new Duplex(body);
+
+        const error = mock.spy(() => { });
+
+        const tunnel = pre_tunnel_to({
+            head,
+            error,
+            connect: _ => Promise.resolve(req),
+            ignoring: _ => false,
+        });
+
+        await tunnel (port, hostname) (res);
+
+        mock.assertSpyCallArg(error, 0, 0, err);
+
+    }
 
 });
 
