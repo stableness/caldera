@@ -3,6 +3,7 @@ import {
     readable,
     writable,
 
+    deadline,
     abortablePromise,
 
     listenAndServe,
@@ -23,6 +24,7 @@ export type Opts = Partial<{
         http: number,
         https: number,
     }>,
+    timeout: number,
     crt: string,
     key: string,
 }>
@@ -120,7 +122,7 @@ export function pre_on_request({
     tunnel = tunnel_to,
 }) {
 
-    return async function ({ auth }: Opts) {
+    return async function ({ auth, timeout }: Opts) {
 
         const check = auth && await verify(new URL(auth, import.meta.url));
 
@@ -139,7 +141,7 @@ export function pre_on_request({
             const { hostname } = url;
             const port = port_normalize(url);
 
-            tunnel (port, hostname) (req.conn);
+            tunnel (port, hostname) (req.conn, timeout);
 
         };
 
@@ -168,14 +170,19 @@ export function pre_tunnel_to ({
 
     return function (port: number, hostname: string) {
 
-        return async function (res: Duplex) {
+        return async function (res: Duplex, timeout = 0) {
 
             const ctrl = new AbortController();
             const { signal } = ctrl;
 
             try {
 
-                const req = await connect({ hostname, port });
+                const conn = connect({ hostname, port });
+
+                const req = await (timeout > 0
+                    ? deadline(conn, timeout)
+                    : conn
+                );
 
                 await Promise.all([
                     abortablePromise(res.write(head), signal),
