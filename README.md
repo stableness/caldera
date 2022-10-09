@@ -15,6 +15,7 @@
     --port.https  - https port                                       
     --crt         - path to certificate file  (Default: "server.crt")
     --key         - path to certificate key   (Default: "server.key")
+    --timeout     - for establishing TCP connection (Default: 120 milliseconds)
 
 
 

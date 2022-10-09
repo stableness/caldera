@@ -11,6 +11,7 @@ export {
 } from 'https://deno.land/std@0.159.0/streams/mod.ts';
 
 export {
+    deadline,
     abortablePromise,
 } from 'https://deno.land/std@0.159.0/async/mod.ts';
 

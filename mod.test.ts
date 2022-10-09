@@ -4,6 +4,7 @@ import * as ast from 'https://deno.land/std@0.159.0/testing/asserts.ts';
 import * as mock from 'https://deno.land/std@0.159.0/testing/mock.ts';
 
 import { concat } from 'https://deno.land/std@0.159.0/bytes/mod.ts';
+import { delay } from 'https://deno.land/std@0.159.0/async/mod.ts';
 
 import {
 
@@ -529,6 +530,31 @@ Deno.test('pre_tunnel_to', async () => {
         await tunnel (port, hostname) (res);
 
         mock.assertSpyCallArg(error, 0, 0, err);
+
+    }
+
+    { // connection timeout
+
+        const error = mock.spy(() => { });
+
+        const req = new Duplex(body);
+        const res = new Duplex(body);
+
+        const ctrl = new AbortController();
+        const { signal } = ctrl;
+
+        const tunnel = pre_tunnel_to({
+            head,
+            error,
+            connect: _ => delay(500, { signal }).then(() => req),
+            ignoring: _ => false,
+        });
+
+        await tunnel (port, hostname) (res, 20);
+
+        ctrl.abort();
+
+        mock.assertSpyCalls(error, 1);
 
     }
 
