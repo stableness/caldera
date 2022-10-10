@@ -1,5 +1,3 @@
-// deno-lint-ignore-file no-unused-labels
-
 import * as ast from 'https://deno.land/std@0.159.0/testing/asserts.ts';
 import * as mock from 'https://deno.land/std@0.159.0/testing/mock.ts';
 
@@ -341,7 +339,7 @@ Deno.test('pre_on_request', async () => {
     const port = 8080;
     const hostname = `${ host }:${ port }`;
 
-    GET: {
+    { // GET
 
         const handle = await on_request({});
 
@@ -360,7 +358,7 @@ Deno.test('pre_on_request', async () => {
 
     }
 
-    CONNECT_without_auth: {
+    { // CONNECT without auth
 
         const handle = await on_request({});
 
@@ -375,7 +373,7 @@ Deno.test('pre_on_request', async () => {
 
     }
 
-    CONNECT_with_auth_by_guest: {
+    { // CONNECT with auth by guest
 
         const handle = await on_request({ auth: 'guest' });
 
@@ -395,7 +393,7 @@ Deno.test('pre_on_request', async () => {
 
     }
 
-    CONNECT_with_auth_by_admin: {
+    { // CONNECT with auth by admin
 
         const handle = await on_request({ auth: 'admin' });
 
