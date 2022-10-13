@@ -117,8 +117,8 @@ export type Handle = Awaited<ReturnType<typeof on_request>>;
 
 /** @internal */
 export function pre_on_request({
-    verify = verify_auth,
-    tunnel = tunnel_to,
+        verify = verify_auth,
+        tunnel = tunnel_to,
 }) {
 
     return async function ({ auth, timeout }: Opts) {
