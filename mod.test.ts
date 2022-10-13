@@ -15,6 +15,7 @@ import {
 
     type Opts,
     type Handle,
+    type Conn,
 
     port_normalize,
     port_verify,
@@ -449,7 +450,7 @@ Deno.test('try_catch', () => {
 
 Deno.test('pre_tunnel_to', async () => {
 
-    class Duplex implements Deno.Reader, Deno.Writer {
+    class Duplex implements Conn {
 
         #used = false
         #sink = Uint8Array.of()
@@ -460,35 +461,42 @@ Deno.test('pre_tunnel_to', async () => {
         ) {
         }
 
-        read (p: Uint8Array): Promise<number | null> {
+        readonly readable = new ReadableStream({
+            pull: c => {
 
-            if (this.error != null) {
-                return Promise.reject(this.error);
+                if (this.error != null) {
+                    return c.error(this.error);
+                }
+
+                if (this.#used === true) {
+                    return;
+                } else {
+                    this.#used = true;
+                }
+
+                c.enqueue(this.init);
+                c.close();
+
+            },
+        });
+
+        readonly writable = new WritableStream({
+            write: (p, c) => {
+
+                if (this.error != null) {
+                    return c.error(this.error);
+                }
+
+                this.#sink = concat(this.#sink, p);
+
             }
-
-            if (this.#used) {
-                return Promise.resolve(null);
-            }
-
-            p.set(this.init);
-            this.#used = true;
-            return Promise.resolve(this.init.byteLength);
-
-        }
-
-        write (p: Uint8Array): Promise<number> {
-
-            if (this.error != null) {
-                return Promise.reject(this.error);
-            }
-
-            this.#sink = concat(this.#sink, p);
-            return Promise.resolve(p.byteLength);
-
-        }
+        });
 
         collect (): Uint8Array {
             return this.#sink;
+        }
+
+        close () {
         }
 
     }

@@ -1,10 +1,9 @@
 import {
 
-    readable,
-    writable,
-
     deadline,
     abortablePromise,
+    abortableAsyncIterable,
+    readableStreamFromIterable,
 
     listenAndServe,
     listenAndServeTLS,
@@ -157,12 +156,11 @@ const established = new TextEncoder().encode('HTTP/1.0 200\r\n\r\n');
 
 const tunnel_to = pre_tunnel_to({});
 
-type Duplex = Deno.Reader & Deno.Writer;
-type Connect = (_: Deno.ConnectOptions) => Promise<Duplex>;
+export type Conn = TransformStream<Uint8Array, Uint8Array> & Deno.Closer;
 
 /* @internal */
 export function pre_tunnel_to ({
-        connect = Deno.connect as Connect,
+        connect = Deno.connect as (_: Deno.ConnectOptions) => Promise<Conn>,
         ignoring = ignores,
         head = established,
         error = console.error,
@@ -170,33 +168,56 @@ export function pre_tunnel_to ({
 
     return function (port: number, hostname: string) {
 
-        return async function (res: Duplex, timeout = 0) {
+        return async function (res: Conn, timeout = 0) {
 
             const ctrl = new AbortController();
             const { signal } = ctrl;
 
+            const opts = {
+                signal,
+                preventClose: true,
+            };
+
             try {
 
-                const conn = connect({ hostname, port });
+                const conn = abortablePromise(
+                    connect({ hostname, port }),
+                    signal,
+                );
 
                 const req = await (timeout > 0
                     ? deadline(conn, timeout)
                     : conn
                 );
 
+                const all_readable = readableStreamFromIterable(
+                    abortableAsyncIterable(
+                        prepend(head, req.readable),
+                        signal,
+                    ),
+                );
+
                 await Promise.all([
-                    abortablePromise(res.write(head), signal),
-                    readable(req).pipeTo(writable(res), { signal }),
-                    readable(res).pipeTo(writable(req), { signal }),
-                ]);
+
+                    all_readable.pipeTo(res.writable, opts),
+                    res.readable.pipeTo(req.writable, opts),
+
+                ]).finally(() => {
+
+                    try_close(req);
+
+                });
 
             } catch (e: unknown) {
-
-                ctrl.abort(e);
 
                 if (ignoring(e) === false) {
                     error(e);
                 }
+
+            } finally {
+
+                ctrl.abort();
+                try_close(res);
 
             }
 
@@ -341,6 +362,15 @@ export function try_catch <T> (fn: () => T): T | Error {
     } catch (e: unknown) {
         return e instanceof Error ? e : new Error('unknown', { cause: e });
     }
+}
+
+
+
+
+
+async function* prepend <T> (head: T, tail: AsyncIterable<T>) {
+    yield head;
+    yield* tail;
 }
 
 
