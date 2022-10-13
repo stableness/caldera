@@ -25,6 +25,7 @@ import {
     pre_on_request,
     pre_tunnel_to,
     main,
+    try_catch,
 
 } from './mod.ts';
 
@@ -417,6 +418,28 @@ Deno.test('pre_on_request', async () => {
 Deno.test('main', async () => {
 
     await ast.assertRejects(() => main({}), Error, 'program exited');
+
+});
+
+
+
+
+
+Deno.test('try_catch', () => {
+
+    const foo = { bar: 1 };
+
+    ast.assertStrictEquals(try_catch(() => foo), foo);
+
+    ast.assertEquals(
+        try_catch(() => { throw new Error('wat') }),
+        new Error('wat'),
+    );
+
+    ast.assertEquals(
+        try_catch(() => { throw 2 }),
+        new Error('unknown', { cause: 2 }),
+    );
 
 });
 
