@@ -59,7 +59,7 @@ export async function main (opts: Opts) {
 
 
 
-/* @internal */
+/** @internal */
 export const pre_serves = ({
         serve = listenAndServe,
         serve_TLS = listenAndServeTLS,
@@ -112,10 +112,10 @@ const { serve_http, serve_https } = pre_serves({});
 
 
 
-/* @internal */
+/** @internal */
 export type Handle = Awaited<ReturnType<typeof on_request>>;
 
-/* @internal */
+/** @internal */
 export function pre_on_request({
     verify = verify_auth,
     tunnel = tunnel_to,
@@ -158,7 +158,7 @@ const tunnel_to = pre_tunnel_to({});
 
 export type Conn = TransformStream<Uint8Array, Uint8Array> & Deno.Closer;
 
-/* @internal */
+/** @internal */
 export function pre_tunnel_to ({
         connect = Deno.connect as (_: Deno.ConnectOptions) => Promise<Conn>,
         ignoring = ignores,
@@ -233,7 +233,7 @@ export function pre_tunnel_to ({
 
 const verify_auth = pre_verify({});
 
-/* @internal */
+/** @internal */
 export function pre_verify ({
         read_file = Deno.readTextFile,
         auth_header = 'proxy-authorization',
@@ -289,7 +289,7 @@ const on_request = pre_on_request({});
 
 
 
-/* @internal */
+/** @internal */
 export function ignores (e: unknown) {
 
     return [
@@ -316,7 +316,7 @@ const auth_failure: Response = {
 
 
 
-/* @internal */
+/** @internal */
 export function port_normalize ({ port, protocol }: URL) {
     return +port || (protocol === 'http:' ? 80 : 443);
 }
@@ -325,7 +325,7 @@ export function port_normalize ({ port, protocol }: URL) {
 
 
 
-/* @internal */
+/** @internal */
 export function safe_int ({
         min = Number.MIN_SAFE_INTEGER,
         max = Number.MAX_SAFE_INTEGER,
@@ -355,7 +355,7 @@ const try_close = (fn: Deno.Closer) => try_catch(() => fn.close());
 
 
 
-/* @internal */
+/** @internal */
 export function try_catch <T> (fn: () => T): T | Error {
     try {
         return fn();
@@ -377,7 +377,7 @@ async function* prepend <T> (head: T, tail: AsyncIterable<T>) {
 
 
 
-/* @internal */
+/** @internal */
 export const port_verify = safe_int({ min: 0, max: 65535 });
 
 
@@ -386,7 +386,7 @@ export const port_verify = safe_int({ min: 0, max: 65535 });
 
 const tap_catch = pre_tap_catch(console.error);
 
-/* @internal */
+/** @internal */
 export function pre_tap_catch (error: typeof console.error) {
 
     return function pre_tap_catch (err?: Error) {
