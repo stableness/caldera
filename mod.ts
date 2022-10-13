@@ -328,6 +328,25 @@ export function safe_int ({
 
 
 
+const try_close = (fn: Deno.Closer) => try_catch(() => fn.close());
+
+
+
+
+
+/* @internal */
+export function try_catch <T> (fn: () => T): T | Error {
+    try {
+        return fn();
+    } catch (e: unknown) {
+        return e instanceof Error ? e : new Error('unknown', { cause: e });
+    }
+}
+
+
+
+
+
 /* @internal */
 export const port_verify = safe_int({ min: 0, max: 65535 });
 
