@@ -13,7 +13,7 @@ const { port: port_, timeout: timeout_, ...rest } = parse(Deno.args, {
             http: 0,
             https: 0,
         },
-        timeout: 120, // milliseconds
+        timeout: 500, // milliseconds
         crt: 'server.crt',
         key: 'server.key',
     }
