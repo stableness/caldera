@@ -173,11 +173,6 @@ export function pre_tunnel_to ({
             const ctrl = new AbortController();
             const { signal } = ctrl;
 
-            const opts = {
-                signal,
-                preventClose: true,
-            };
-
             try {
 
                 const conn = abortablePromise(
@@ -196,6 +191,11 @@ export function pre_tunnel_to ({
                         signal,
                     ),
                 );
+
+                const opts: PipeOptions = {
+                    signal,
+                    preventClose: true,
+                };
 
                 await Promise.all([
 
