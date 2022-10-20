@@ -381,8 +381,6 @@ export const port_verify = safe_int({ min: 0, max: 65535 });
 
 
 
-const tap_catch = pre_tap_catch(console.error);
-
 /** @internal */
 export function pre_tap_catch (error: typeof console.error) {
 
