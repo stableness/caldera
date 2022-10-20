@@ -22,7 +22,7 @@ jobs:
       - run: deno lint
 
       - run: |-
-          deno test --coverage=cov/
+          deno test --allow-all --coverage=cov/
           deno coverage --lcov cov/ > cov.lcov
 
       - uses: codecov/codecov-action@v3
