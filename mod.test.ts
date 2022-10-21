@@ -7,6 +7,7 @@ import { delay } from 'https://deno.land/std@0.159.0/async/mod.ts';
 import {
 
     ServerRequest,
+    type Server,
     type Response,
 
 } from './deps.ts'
@@ -14,7 +15,6 @@ import {
 import {
 
     type Opts,
-    type Handle,
     type Conn,
 
     port_normalize,
@@ -260,10 +260,9 @@ Deno.test('ignores', () => {
 Deno.test('pre_serves', async () => {
 
     const info = (_: ServerRequest) => { };
-    const handle = mock.spy(info);
 
-    const serving = <T> (_: T, cb: Handle) => {
-        return Promise.resolve(cb({} as never));
+    const serving = <T> (_: T): Server => {
+        return {} as never;
     };
 
     const read_file = (path?: string | URL) => {
@@ -275,11 +274,11 @@ Deno.test('pre_serves', async () => {
     const {
         serve_http,
         serve_https,
-    } = pre_serves({ info, read_file, serve: serving, serve_TLS: serving });
+    } = pre_serves({ info, read_file, http: serving, https: serving });
 
     const serve = (o: Opts) => [
-        serve_http(o, handle),
-        serve_https(o, handle),
+        serve_http(o),
+        serve_https(o),
     ];
 
     const http = 41;
@@ -310,8 +309,6 @@ Deno.test('pre_serves', async () => {
     }
 
     await Promise.all(serve({ port: { http, https }, key, crt }));
-
-    mock.assertSpyCalls(handle, 2);
 
 });
 
