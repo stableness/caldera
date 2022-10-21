@@ -14,5 +14,6 @@ export {
     deadline,
     abortablePromise,
     abortableAsyncIterable,
+    MuxAsyncIterator,
 } from 'https://deno.land/std@0.159.0/async/mod.ts';
 
