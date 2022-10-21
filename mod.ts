@@ -5,8 +5,8 @@ import {
     abortableAsyncIterable,
     readableStreamFromIterable,
 
-    listenAndServe,
-    listenAndServeTLS,
+    serve,
+    serveTLS,
 
     type Response,
     type ServerRequest,
@@ -61,27 +61,27 @@ export async function main (opts: Opts) {
 
 /** @internal */
 export const pre_serves = ({
-        serve = listenAndServe,
-        serve_TLS = listenAndServeTLS,
+        http = serve,
+        https = serveTLS,
         read_file = Deno.readTextFile,
         info = console.info,
 }) => ({
 
-    serve_http (opts: Opts, handle: Handle) {
+    serve_http: (opts: Opts) => new Promise<Server>((resolve, reject) => {
 
         const port = port_verify(opts.port?.http) ?? 0;
 
         if (port < 1) {
-            return Promise.reject(new Error('no http port'));
+            return reject(new Error('no http port'));
         }
 
         info(`http [${ port }]`);
 
-        return serve({ port }, handle).catch(tap_catch);
+        resolve(http({ port }));
 
-    },
+    }),
 
-    async serve_https (opts: Opts, handle: Handle) {
+    async serve_https (opts: Opts) {
 
         const port = port_verify(opts.port?.https) ?? 0;
 
@@ -100,7 +100,7 @@ export const pre_serves = ({
 
         info(`https [${ port }]`);
 
-        return serve_TLS({ port, key, cert }, handle).catch(tap_catch);
+        return https({ port, key, cert });
 
     },
 
@@ -111,9 +111,6 @@ const { serve_http, serve_https } = pre_serves({});
 
 
 
-
-/** @internal */
-export type Handle = Awaited<ReturnType<typeof on_request>>;
 
 /** @internal */
 export function pre_on_request({
