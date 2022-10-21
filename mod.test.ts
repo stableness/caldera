@@ -1,14 +1,17 @@
 import * as ast from 'https://deno.land/std@0.159.0/testing/asserts.ts';
 import * as mock from 'https://deno.land/std@0.159.0/testing/mock.ts';
 
-import { concat } from 'https://deno.land/std@0.159.0/bytes/mod.ts';
+import { concat, repeat } from 'https://deno.land/std@0.159.0/bytes/mod.ts';
 import { delay } from 'https://deno.land/std@0.159.0/async/mod.ts';
+import { copy } from 'https://deno.land/std@0.159.0/streams/conversion.ts';
+import { sample } from 'https://deno.land/std@0.159.0/collections/sample.ts';
 
 import {
 
     ServerRequest,
     type Server,
     type Response,
+    abortablePromise,
     abortableAsyncIterable,
 
 } from './deps.ts'
@@ -415,9 +418,106 @@ Deno.test('pre_on_request', async () => {
 
 
 
-Deno.test('main', async () => {
+Deno.test('main', { permissions: { net: true, read: [ '.' ] } }, async () => {
 
-    await ast.assertRejects(() => main({}), Error, 'program exited');
+    { // early exit
+
+        await ast.assertRejects(() => main({}), Error, 'program exited');
+
+    }
+
+    { // abort to complete
+
+        const signal = AbortSignal.abort();
+
+        await main({ port: { http: 65535 } }, { signal });
+
+    }
+
+    { // e2e
+
+        const ctrl = new AbortController();
+        const { signal } = ctrl;
+
+        const abortable = <T> (p: Promise<T>) => abortablePromise(p, signal);
+
+        const s2u = (str: string) => new TextEncoder().encode(str);
+
+        const alloc = (b: Uint8Array) => repeat(b, 1).fill(0);
+
+        const aborted = (err: unknown) => {
+            if (err instanceof Error && err.name === 'AbortError') {
+                return;
+            }
+            throw err;
+        };
+
+        const server = async function (port: number) {
+
+            const listener = Deno.listen({ port });
+            const conn = await listener.accept();
+
+            abortable(copy(conn, conn))
+                .catch(aborted)
+                .finally(() => {
+                    try_catch(() => listener.close());
+                    try_catch(() => conn.close());
+                })
+            ;
+
+        }
+
+        const client = async function (origin: number, proxy: number) {
+
+            const conn = await Deno.connect({ port: proxy });
+
+            {
+                const knock = s2u(`CONNECT 0.0.0.0:${ origin } HTTP/1.1\r\n\r\n`);
+                const reply = s2u('HTTP/1.0 200\r\n\r\n');
+                const result = alloc(reply);
+
+                await conn.write(knock);
+                await conn.read(result);
+
+                ast.assertEquals(result, reply);
+            }
+
+            {
+                const data = s2u('foobar');
+                const result = alloc(data);
+
+                await conn.write(data);
+                await conn.read(result);
+
+                ast.assertEquals(result, data);
+            }
+
+            await conn.closeWrite();
+
+            conn.close();
+
+        }
+
+        const port_echo  = sample([ 40100, 40200, 40300, 40400 ]);
+        const port_proxy = sample([ 50100, 50200, 50300, 50400 ]);
+
+        ast.assertExists(port_echo);
+        ast.assertExists(port_proxy);
+
+        main({ port: { http: port_proxy } }, { signal });
+
+        await delay(10);
+
+        await Promise.all([
+
+            server(port_echo),
+            client(port_echo, port_proxy),
+
+        ]);
+
+        try_catch(() => ctrl.abort('done'));
+
+    }
 
 });
 

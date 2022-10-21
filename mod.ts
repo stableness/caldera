@@ -4,10 +4,12 @@ import {
     abortablePromise,
     abortableAsyncIterable,
     readableStreamFromIterable,
+    MuxAsyncIterator,
 
     serve,
     serveTLS,
 
+    type Server,
     type Response,
     type ServerRequest,
 
@@ -32,24 +34,50 @@ export type Opts = Partial<{
 
 
 
-export async function main (opts: Opts) {
+export async function main (
+        opts: Opts,
+        { signal } = new AbortController() as { readonly signal: AbortSignal },
+) {
 
     const handle = await on_request(opts);
 
-    const [ http, https ] = await Promise.allSettled([
-        serve_http(opts, handle),
-        serve_https(opts, handle),
+    const services = await Promise.allSettled([
+        serve_http(opts),
+        serve_https(opts),
     ]);
 
-    if (http.status === 'rejected' && https.status === 'rejected') {
+    if (services.every(settling.rejected)) {
 
         const cause = [
             '',
-            http.reason,
-            https.reason,
+            ...services.filter(settling.rejected).map(r => r.reason),
         ].join('\n');
 
         throw new Error('program exited', { cause });
+
+    }
+
+    const fulfilled = services.filter(settling.fulfilled);
+
+    try {
+
+        const mux = new MuxAsyncIterator<ServerRequest>();
+
+        for (const { value } of fulfilled) {
+            mux.add(value);
+        }
+
+        const listener = catch_abortable(abortableAsyncIterable(mux, signal));
+
+        for await (const conn of listener) {
+            handle(conn);
+        }
+
+    } finally {
+
+        for (const { value } of fulfilled) {
+            try_close(value);
+        }
 
     }
 
@@ -413,4 +441,24 @@ export function pre_tap_catch (error: typeof console.error) {
     }
 
 }
+
+
+
+
+
+const settling = {
+
+    fulfilled <T> (
+        result  : PromiseSettledResult<T>,
+    ) : result is PromiseFulfilledResult<T> {
+        return result.status === 'fulfilled';
+    },
+
+    rejected <T> (
+        result  : PromiseSettledResult<T>,
+    ) : result is PromiseRejectedResult {
+        return result.status === 'rejected';
+    },
+
+} as const;
 
