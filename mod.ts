@@ -375,6 +375,29 @@ async function* prepend <T> (head: T, tail: AsyncIterable<T>) {
 
 
 /** @internal */
+export async function* catch_abortable <T> (iterable: Iterable<T> | AsyncIterable<T>) {
+
+    try {
+
+        yield* iterable;
+
+    } catch (err: unknown) {
+
+        if (err instanceof Error && err.name === 'AbortError') {
+            return;
+        }
+
+        throw err;
+
+    }
+
+}
+
+
+
+
+
+/** @internal */
 export const port_verify = safe_int({ min: 0, max: 65535 });
 
 

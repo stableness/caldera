@@ -9,6 +9,7 @@ import {
     ServerRequest,
     type Server,
     type Response,
+    abortableAsyncIterable,
 
 } from './deps.ts'
 
@@ -27,6 +28,7 @@ import {
     pre_tunnel_to,
     main,
     try_catch,
+    catch_abortable,
 
 } from './mod.ts';
 
@@ -438,6 +440,86 @@ Deno.test('try_catch', () => {
         try_catch(() => { throw 2 }),
         new Error('unknown', { cause: 2 }),
     );
+
+});
+
+
+
+
+
+Deno.test('catch_abortable', async () => {
+
+    const one = 1;
+    const wat = new Error('wat');
+
+    const gen = {
+
+        * error () {
+            yield one;
+            throw wat;
+        },
+
+        async* delay_error () {
+            yield one;
+            await delay(10);
+            throw wat;
+        },
+
+        async* count (max = Number.MAX_SAFE_INTEGER) {
+            let i = 0;
+            while (i < max) {
+                yield i ;
+                i += 1;
+            }
+        }
+
+    } as const;
+
+    await ast.assertRejects(async function reject_on_non_abort_error () {
+
+        // deno-lint-ignore no-empty
+        for await (const _ of catch_abortable(gen.error())) { }
+
+    });
+
+    await ast.assertRejects(async function reject_on_delayed_non_abort_error () {
+
+        // deno-lint-ignore no-empty
+        for await (const _ of catch_abortable(gen.delay_error())) { }
+
+    });
+
+    await (async function resolve_on_finished () {
+
+        const call = mock.spy(() => {});
+
+        for await (const _ of catch_abortable(gen.count(5))) {
+            call();
+        }
+
+        mock.assertSpyCalls(call, 5);
+
+    }());
+
+    await (async function resolve_on_normal_delayed_abortable () {
+
+        const ctrl = new AbortController();
+        const abort = mock.spy(() => ctrl.abort());
+
+        const data = catch_abortable(abortableAsyncIterable(
+            gen.count(),
+            ctrl.signal,
+        ));
+
+        for await (const i of data) {
+            if (i > 3) {
+                abort();
+            }
+        }
+
+        mock.assertSpyCalls(abort, 1);
+
+    }());
 
 });
 
