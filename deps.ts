@@ -8,12 +8,12 @@ export {
 
 export {
     readableStreamFromIterable,
-} from 'https://deno.land/std@0.159.0/streams/mod.ts';
+} from 'https://deno.land/std@0.160.0/streams/mod.ts';
 
 export {
     deadline,
     abortablePromise,
     abortableAsyncIterable,
     MuxAsyncIterator,
-} from 'https://deno.land/std@0.159.0/async/mod.ts';
+} from 'https://deno.land/std@0.160.0/async/mod.ts';
 
