@@ -2,7 +2,7 @@ import * as ast from 'https://deno.land/std@0.160.0/testing/asserts.ts';
 import * as mock from 'https://deno.land/std@0.160.0/testing/mock.ts';
 
 import { concat, repeat } from 'https://deno.land/std@0.160.0/bytes/mod.ts';
-import { delay } from 'https://deno.land/std@0.160.0/async/mod.ts';
+import { delay, DeadlineError } from 'https://deno.land/std@0.160.0/async/mod.ts';
 import { copy } from 'https://deno.land/std@0.160.0/streams/conversion.ts';
 import { sample } from 'https://deno.land/std@0.160.0/collections/sample.ts';
 
@@ -226,6 +226,8 @@ Deno.test('ignores', () => {
             Deno.errors.BadResource,
             Deno.errors.BrokenPipe,
             Deno.errors.ConnectionReset,
+
+            DeadlineError,
 
         ];
 
