@@ -9,6 +9,9 @@ import {
     serve,
     serveTLS,
 
+    resolve as toAbsolute,
+    toFileUrl,
+
     type Server,
     type Response,
     type ServerRequest,
@@ -148,7 +151,7 @@ export function pre_on_request({
 
     return async function ({ auth, timeout }: Opts) {
 
-        const check = auth && await verify(new URL(auth, import.meta.url));
+        const check = auth && await verify(toFileUrl(toAbsolute(auth)));
 
         return function (req: ServerRequest): void {
 
