@@ -17,6 +17,7 @@ export {
 
 export {
     deadline,
+    DeadlineError,
     abortablePromise,
     abortableAsyncIterable,
     MuxAsyncIterator,

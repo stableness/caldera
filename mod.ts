@@ -1,6 +1,7 @@
 import {
 
     deadline,
+    DeadlineError,
     abortablePromise,
     abortableAsyncIterable,
     readableStreamFromIterable,
@@ -324,6 +325,8 @@ export function ignores (e: unknown) {
         Deno.errors.BadResource,
         Deno.errors.BrokenPipe,
         Deno.errors.ConnectionReset,
+
+        DeadlineError,
 
     ].some(clazz => e instanceof clazz);
 
