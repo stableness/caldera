@@ -33,6 +33,17 @@
 
 
 
+## Create self-signed certificate
+
+```sh
+openssl req -x509 -nodes \
+  -days 365 \
+  -newkey rsa:2048 \
+  -subj "/C=US/CN=example.com" \
+  -keyout server.key \
+  -out server.crt
+```
+
 
 
 ## Server side
