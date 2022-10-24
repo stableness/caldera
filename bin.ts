@@ -1,6 +1,6 @@
 import { main, safe_int } from './mod.ts'
 
-import { parse } from 'https://deno.land/std@0.159.0/flags/mod.ts';
+import { parse } from 'https://deno.land/std@0.160.0/flags/mod.ts';
 
 
 
