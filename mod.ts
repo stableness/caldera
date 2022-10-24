@@ -265,7 +265,6 @@ const verify_auth = pre_verify({});
 export function pre_verify ({
         read_file = Deno.readTextFile,
         auth_header = 'proxy-authorization',
-        warn = console.warn,
 }) {
 
     return async function (input: string | URL) {
@@ -292,14 +291,14 @@ export function pre_verify ({
                 return pa != null && store.has(pa);
             };
 
-        } catch (e: unknown) {
+        } catch (err: unknown) {
 
-            const detail = e instanceof Error
-                ? `: ${ e.cause ?? e.message }`
+            const cause = err instanceof Error
+                ? `: ${ err.cause ?? err.message }`
                 : ''
             ;
 
-            warn('fail to read auth file' + detail);
+            throw new Error('fail to read auth file', { cause });
 
         }
 

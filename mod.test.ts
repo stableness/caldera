@@ -91,8 +91,6 @@ Deno.test('port_verify', () => {
 
 Deno.test('pre_verify', async () => {
 
-    const warn = mock.spy(() => {});
-
     const auth_header = 'proxy-authorization';
 
     const read_file = (input: string | URL) => {
@@ -109,7 +107,7 @@ Deno.test('pre_verify', async () => {
         });
     };
 
-    const verify = pre_verify({ warn, auth_header, read_file });
+    const verify = pre_verify({ auth_header, read_file });
 
     await verify(new URL('http://foobar#{ "a": 1 }'));
 
@@ -166,11 +164,12 @@ Deno.test('pre_verify', async () => {
             new URL('http://a'),
         ];
 
-        for (const v of await Promise.all(arr.map(verify))) {
-            mk_assert (v, undefined) ('hello', 'world');
-        }
+        const result = await Promise.allSettled(arr.map(verify));
 
-        mock.assertSpyCalls(warn, arr.length);
+        ast.assert(
+            result.every(r => r.status === 'rejected'),
+            'reject on invalid auth json file',
+        );
     }
 
 });
@@ -327,21 +326,33 @@ Deno.test('pre_on_request', async () => {
         (_p: number, _h: string) => (_req: unknown) => Promise.resolve()
     );
 
-    const on_request = pre_on_request({
+    const verify = (input: string | URL) => new Promise<() => boolean>((res, rej) => {
 
-        tunnel,
+        if (input instanceof URL) {
 
-        verify: input => Promise.resolve(
-            input instanceof URL
-                ? _ => input.href.endsWith('admin')
-                : undefined
-        ),
+            if (input.href.endsWith('__')) {
+                return rej(new Error('bad config file: ' + input.pathname));
+            }
+
+            return res(() => input.href.endsWith('admin'));
+
+        }
+
+        rej(new Error('non URL'));
 
     });
+
+    const on_request = pre_on_request({ tunnel, verify });
 
     const host = 'foobar';
     const port = 8080;
     const hostname = `${ host }:${ port }`;
+
+    { // throws while specified auth file missing
+
+        await ast.assertRejects(() => on_request({ auth: '__missing__' }));
+
+    }
 
     { // GET
 
