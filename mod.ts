@@ -142,6 +142,15 @@ const { serve_http, serve_https } = pre_serves({});
 
 
 
+const html: Response = {
+    status: 200,
+    headers: new Headers({
+        'content-type': 'text/html; charset=utf-8',
+    }),
+    body: `<!DOCTYPE html><html><body>
+        <main>hello, world</main>
+    </body></html>`,
+};
 
 
 /** @internal */
@@ -155,6 +164,12 @@ export function pre_on_request({
         const check = auth && await verify(toFileUrl(toAbsolute(auth)));
 
         return function (req: ServerRequest): void {
+
+            console.log(req.headers);
+
+            if (req.method.toUpperCase() === 'GET') {
+                return void req.respond(html);
+            }
 
             if (req.method !== 'CONNECT') {
                 return void req.respond({ status: 204 });

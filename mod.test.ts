@@ -356,12 +356,12 @@ Deno.test('pre_on_request', async () => {
 
     }
 
-    { // GET
+    { // GET back dummy 200 response
 
         const handle = await on_request({});
 
         const respond = mock.spy((res: Response) => Promise.resolve(
-            ast.assertNotStrictEquals(res.status, 200),
+            ast.assertStrictEquals(res.status, 200),
         ));
 
         const req = new ServerRequest();
