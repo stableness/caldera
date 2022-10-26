@@ -751,7 +751,7 @@ Deno.test('pre_tunnel_to', async () => {
 
         await tunnel (port, hostname) (res);
 
-        mock.assertSpyCallArg(error, 0, 0, err);
+        mock.assertSpyCallArgs(error, 0, 0, [ hostname, port, err ]);
 
     }
 
