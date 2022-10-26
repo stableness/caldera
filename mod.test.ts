@@ -226,6 +226,7 @@ Deno.test('ignores', () => {
             Deno.errors.BadResource,
             Deno.errors.BrokenPipe,
             Deno.errors.ConnectionReset,
+            Deno.errors.Interrupted,
 
             DeadlineError,
 
