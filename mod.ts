@@ -235,7 +235,7 @@ export function pre_tunnel_to ({
             } catch (e: unknown) {
 
                 if (ignoring(e) === false) {
-                    error(e);
+                    error(hostname, port, e);
                 }
 
             } finally {
