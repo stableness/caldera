@@ -403,24 +403,36 @@ async function* prepend <T> (head: T, tail: AsyncIterable<T>) {
 
 
 
-/** @internal */
-export async function* catch_abortable <T> (iterable: Iterable<T> | AsyncIterable<T>) {
+function catch_iterable_when (predicate: (_: unknown) => boolean) {
 
-    try {
+    return async function* <T> (iterable: Iterable<T> | AsyncIterable<T>) {
 
-        yield* iterable;
+        try {
 
-    } catch (err: unknown) {
+            yield* iterable;
 
-        if (err instanceof Error && err.name === 'AbortError') {
-            return;
+        } catch (err: unknown) {
+
+            if (predicate(err) === true) {
+                return;
+            }
+
+            throw err;
+
         }
 
-        throw err;
-
-    }
+    };
 
 }
+
+
+
+
+
+/** @internal */
+export const catch_abortable = catch_iterable_when((err): err is Error => {
+    return err instanceof Error && err.name === 'AbortError';
+});
 
 
 
