@@ -221,15 +221,10 @@ export function pre_tunnel_to ({
                     ),
                 );
 
-                const opts: PipeOptions = {
-                    signal,
-                    preventClose: true,
-                };
-
                 await Promise.all([
 
-                    all_readable.pipeTo(res.writable, opts),
-                    res.readable.pipeTo(req.writable, opts),
+                    all_readable.pipeTo(res.writable, { signal }),
+                    res.readable.pipeTo(req.writable, { signal }),
 
                 ]).finally(() => {
 
