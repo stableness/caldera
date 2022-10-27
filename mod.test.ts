@@ -263,9 +263,9 @@ Deno.test('ignores', () => {
 
 Deno.test('pre_serves', async () => {
 
-    const info = (_: ServerRequest) => { };
+    const info = (..._: unknown[]) => { };
 
-    const serving = <T> (_: T): Server => {
+    const serving = <T> (_: T): Deno.Listener & Deno.TlsListener => {
         return {} as never;
     };
 
@@ -347,6 +347,7 @@ Deno.test('pre_on_request', async () => {
     const host = 'foobar';
     const port = 8080;
     const hostname = `${ host }:${ port }`;
+    const url = 'https://' + hostname;
 
     { // throws while specified auth file missing
 
@@ -358,18 +359,19 @@ Deno.test('pre_on_request', async () => {
 
         const handle = await on_request({});
 
-        const respond = mock.spy((res: Response) => Promise.resolve(
+        const respondWith = mock.spy((res: Response) => Promise.resolve(
             ast.assertNotStrictEquals(res.status, 200),
         ));
 
-        const req = new ServerRequest();
+        const request: Request = {
+            url,
+            method: 'GET',
+            headers: new Headers(),
+        } as never;
 
-        req.method = 'GET';
-        req.respond = respond;
+        handle({ request, respondWith });
 
-        handle(req);
-
-        mock.assertSpyCalls(respond, 1);
+        mock.assertSpyCalls(respondWith, 1);
 
     }
 
@@ -377,12 +379,17 @@ Deno.test('pre_on_request', async () => {
 
         const handle = await on_request({});
 
-        const req = new ServerRequest();
+        const respondWith = mock.spy((res: Response) => Promise.resolve(
+            ast.assertNotStrictEquals(res.status, 200),
+        ));
 
-        req.url = hostname;
-        req.method = 'CONNECT';
+        const request: Request = {
+            url,
+            method: 'CONNECT',
+            headers: new Headers(),
+        } as never;
 
-        handle(req);
+        handle({ request, respondWith });
 
         mock.assertSpyCallArgs(tunnel, 0, 0, [ port, host ]);
 
@@ -392,19 +399,19 @@ Deno.test('pre_on_request', async () => {
 
         const handle = await on_request({ auth: 'guest' });
 
-        const respond = mock.spy((res: Response) => Promise.resolve(
+        const respondWith = mock.spy((res: Response) => Promise.resolve(
             ast.assertStrictEquals(res.status, 407),
         ));
 
-        const req = new ServerRequest();
+        const request: Request = {
+            url,
+            method: 'CONNECT',
+            headers: new Headers(),
+        } as never;
 
-        req.url = hostname;
-        req.method = 'CONNECT';
-        req.respond = respond;
+        handle({ request, respondWith });
 
-        handle(req);
-
-        mock.assertSpyCalls(respond, 1);
+        mock.assertSpyCalls(respondWith, 1);
 
     }
 
@@ -412,12 +419,17 @@ Deno.test('pre_on_request', async () => {
 
         const handle = await on_request({ auth: 'admin' });
 
-        const req = new ServerRequest();
+        const respondWith = mock.spy((res: Response) => Promise.resolve(
+            ast.assertNotStrictEquals(res.status, 200),
+        ));
 
-        req.url = hostname;
-        req.method = 'CONNECT';
+        const request: Request = {
+            url,
+            method: 'CONNECT',
+            headers: new Headers(),
+        } as never;
 
-        handle(req);
+        handle({ request, respondWith });
 
         mock.assertSpyCallArgs(tunnel, 1, 0, [ port, host ]);
 
@@ -453,6 +465,7 @@ Deno.test('main', { permissions: { net: true, read: [ '.' ] } }, async () => {
         const abortable = <T> (p: Promise<T>) => abortablePromise(p, signal);
 
         const s2u = (str: string) => new TextEncoder().encode(str);
+        const u2s = (buf: Uint8Array) => new TextDecoder().decode(buf);
 
         const alloc = (b: Uint8Array) => repeat(b, 1).fill(0);
 
@@ -483,14 +496,21 @@ Deno.test('main', { permissions: { net: true, read: [ '.' ] } }, async () => {
             const conn = await Deno.connect({ port: proxy });
 
             {
-                const knock = s2u(`CONNECT 0.0.0.0:${ origin } HTTP/1.1\r\n\r\n`);
-                const reply = s2u('HTTP/1.0 200\r\n\r\n');
-                const result = alloc(reply);
+                await conn.write(s2u(
+                    `CONNECT 0.0.0.0:${ origin } HTTP/1.1\r\n\r\n`,
+                ));
 
-                await conn.write(knock);
-                await conn.read(result);
+                const sink = new Uint8Array(1024);
 
-                ast.assertEquals(result, reply);
+                const len = await conn.read(sink);
+
+                ast.assertExists(len);
+
+                const res = u2s(sink.subarray(0, len));
+
+                ast.assert(res.startsWith('HTTP/1.1 200 OK\r\n'));
+                ast.assert(res.endsWith('\r\n\r\n'));
+
             }
 
             {
