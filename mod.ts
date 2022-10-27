@@ -61,15 +61,13 @@ export async function main (
 
     }
 
-    const fulfilled = services.filter(settling.fulfilled);
+    const fulfilled = services.filter(settling.fulfilled).map(r => r.value);
 
     try {
 
         const mux = new MuxAsyncIterator<ServerRequest>();
 
-        for (const { value } of fulfilled) {
-            mux.add(value);
-        }
+        fulfilled.forEach(it => mux.add(it));
 
         const listener = catch_abortable(abortableAsyncIterable(mux, signal));
 
@@ -79,9 +77,7 @@ export async function main (
 
     } finally {
 
-        for (const { value } of fulfilled) {
-            try_close(value);
-        }
+        fulfilled.forEach(try_close);
 
     }
 
