@@ -29,6 +29,7 @@ import {
     main,
     try_catch,
     catch_abortable,
+    parse_range,
 
 } from './mod.ts';
 
@@ -87,6 +88,41 @@ Deno.test('port_verify', () => {
     eq_undefined(-1);
     eq_undefined(4.2);
     eq_undefined(999999);
+
+});
+
+
+
+
+
+Deno.test('parse_range', () => {
+
+    const tuple = <T extends unknown[]> (...rest: T) => rest;
+
+    const table = [
+
+        tuple('wat',      [ NaN ]),
+        tuple('wat-3',    [ NaN ]),
+        tuple('1e3',      [ 1 ]),
+        tuple('1,wat',    [ 1, NaN ]),
+        tuple('wat,3',    [ NaN, 3 ]),
+
+        tuple('4.2',      [ 4 ]),
+        tuple('4.2-6',    [ 4, 5, 6 ]),
+
+        tuple('42',       [ 42 ]),
+        tuple('42,60',    [ 42, 60 ]),
+        tuple('42,60,80', [ 42, 60, 80 ]),
+        tuple('42-',      [ 42 ]),
+        tuple('42-??',    [ 42 ]),
+        tuple('42-10',    [ 42 ]),
+        tuple('42-45',    [ 42, 43, 44, 45 ]),
+
+    ];
+
+    for (const [ raw, res ] of table) {
+        ast.assertEquals(parse_range(raw), res, raw);
+    }
 
 });
 

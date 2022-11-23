@@ -380,6 +380,27 @@ export function safe_int ({
 
 
 
+export function parse_range (raw: string): readonly number[] {
+
+    return raw.split(',').flatMap(str => {
+
+        const [ from, to = from ] = str.split('-', 2);
+
+        const lo = Number.parseInt(from);
+        const hi = Number.parseInt(to);
+
+        const length = Math.max(1, (hi - lo + 1) || 0);
+
+        return Array.from({ length }, (_, i) => i + lo);
+
+    });
+
+}
+
+
+
+
+
 const try_close = (fn: Deno.Closer) => try_catch(() => fn.close());
 
 
