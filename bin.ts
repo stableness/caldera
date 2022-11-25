@@ -7,7 +7,7 @@ import { mapNotNullish } from 'https://deno.land/std@0.165.0/collections/map_not
 
 
 
-const { port: port_, timeout: timeout_, ...rest } = parse(Deno.args, {
+const { timeout, port, ...rest } = parse(Deno.args, {
     string: [ 'auth', 'crt', 'key', 'port.http', 'port.https' ],
     default: {
         'port.http': '',
@@ -15,19 +15,23 @@ const { port: port_, timeout: timeout_, ...rest } = parse(Deno.args, {
         timeout: 500, // milliseconds
         crt: 'server.crt',
         key: 'server.key',
-    }
+    },
 });
 
-const port = {
-    http: new Set(mapNotNullish(parse_range(port_.http), port_verify)),
-    https: new Set(mapNotNullish(parse_range(port_.https), port_verify)),
-};
-
-const timeout = safe_int ({ min: 0 }) (Number(timeout_));
 
 
 
 
+main({
 
-main({ port, timeout, ...rest }).catch(console.error);
+    ...rest,
+
+    timeout: safe_int ({ min: 0 }) (Number(timeout)),
+
+    port: {
+        http: new Set(mapNotNullish(parse_range(port.http), port_verify)),
+        https: new Set(mapNotNullish(parse_range(port.https), port_verify)),
+    },
+
+}).catch(console.error);
 
