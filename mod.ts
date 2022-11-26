@@ -16,31 +16,47 @@ import {
 
 
 
-export type Opts = Partial<{
+export type MainOpts = Partial<{
     auth: string,
     port: Partial<{
-        http: number,
-        https: number,
+        http: number | Iterable<number>,
+        https: number | Iterable<number>,
     }>,
     timeout: number,
     crt: string,
     key: string,
 }>
 
+type OptsWithoutPort = Omit<MainOpts, 'port'>;
+
+export type Opts = OptsWithoutPort & Partial<{
+    port: Partial<{
+        http: number,
+        https: number,
+    }>,
+}>;
+
 
 
 
 
 export async function main (
-        opts: Opts,
+        { port, ...opts }: MainOpts,
         { signal } = new AbortController() as { readonly signal: AbortSignal },
 ) {
 
     const handle = await on_request(opts);
 
     const services = await Promise.allSettled([
-        serve_http(opts),
-        serve_https(opts),
+
+        ...map_nullable_num(port?.http, http => serve_http({
+            ...opts, port: { http },
+        })),
+
+        ...map_nullable_num(port?.https, https => serve_https({
+            ...opts, port: { https },
+        })),
+
     ]);
 
     if (services.every(settling.rejected)) {
@@ -147,7 +163,7 @@ export function pre_on_request({
         tunnel = tunnel_to,
 }) {
 
-    return async function ({ auth, timeout }: Opts) {
+    return async function ({ auth, timeout }: OptsWithoutPort) {
 
         const check = auth && await verify(toFileUrl(toAbsolute(auth)));
 
