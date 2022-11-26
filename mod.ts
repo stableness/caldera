@@ -488,6 +488,24 @@ export function pre_tap_catch (error: typeof console.error) {
 
 
 
+export function map_nullable_num <T> (
+        x: number | Iterable<number> | null | undefined,
+        fn: (n: number) => T,
+): readonly T[] {
+
+    return (x == null
+        ? Array.of<number>()
+        : typeof x === 'number'
+            ? Array.of(x)
+            : Array.from(x)
+    ).map(fn);
+
+}
+
+
+
+
+
 const settling = {
 
     fulfilled <T> (

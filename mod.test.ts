@@ -30,6 +30,7 @@ import {
     try_catch,
     catch_abortable,
     parse_range,
+    map_nullable_num,
 
 } from './mod.ts';
 
@@ -298,6 +299,43 @@ Deno.test('ignores', () => {
             );
         }
     }
+
+});
+
+
+
+
+
+Deno.test('map_nullable_num', () => {
+
+    {
+
+        const table = [
+            null,
+            undefined,
+            Array.of<number>(),
+            new Set<number>(),
+        ];
+
+        const fn = mock.spy(() => {});
+
+        for (const n of table) {
+            map_nullable_num(n, fn);
+        }
+
+        mock.assertSpyCalls(fn, 0);
+
+    }
+
+    const add_one = (n: number) => n + 1;
+
+    ast.assertEquals(map_nullable_num(          3   , add_one), [ 4 ]);
+    ast.assertEquals(map_nullable_num(        [ 3 ] , add_one), [ 4 ]);
+    ast.assertEquals(map_nullable_num(new Set([ 3 ]), add_one), [ 4 ]);
+
+    ast.assertEquals(map_nullable_num([ 1, 2, 3 ], add_one),
+                                      [ 2, 3, 4 ],
+    );
 
 });
 
