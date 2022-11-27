@@ -17,12 +17,12 @@ jobs:
         with:
           deno-version: v1.x
 
-      - run: deno check *.ts
+      - run: deno check --unstable *.ts
 
       - run: deno lint
 
       - run: |-
-          deno test --allow-all --coverage=cov/
+          deno test --unstable --allow-all --coverage=cov/
           deno coverage --lcov cov/ > cov.lcov
 
       - uses: codecov/codecov-action@v3

@@ -8,9 +8,6 @@ import { sample } from 'https://deno.land/std@0.160.0/collections/sample.ts';
 
 import {
 
-    ServerRequest,
-    type Server,
-    type Response,
     abortablePromise,
     abortableAsyncIterable,
 

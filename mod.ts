@@ -7,15 +7,8 @@ import {
     readableStreamFromIterable,
     MuxAsyncIterator,
 
-    serve,
-    serveTLS,
-
     resolve as toAbsolute,
     toFileUrl,
-
-    type Server,
-    type Response,
-    type ServerRequest,
 
 } from './deps.ts';
 
@@ -65,14 +58,22 @@ export async function main (
 
     try {
 
-        const mux = new MuxAsyncIterator<ServerRequest>();
+        const graceful_abort = <T> (iterable: AsyncIterable<T>) => {
+            return catch_abortable(abortableAsyncIterable(iterable, signal));
+        };
 
-        fulfilled.forEach(it => mux.add(it));
+        const mux = new MuxAsyncIterator<Deno.Conn>();
 
-        const listener = catch_abortable(abortableAsyncIterable(mux, signal));
+        fulfilled.forEach(it => mux.add(graceful_abort(it)));
 
-        for await (const conn of listener) {
-            handle(conn);
+        for await (const conn of mux) {
+
+            const listener = graceful_abort(Deno.serveHttp(conn));
+
+            for await (const event of catch_all(listener)) {
+                handle(event).catch(ignores);
+            }
+
         }
 
     } finally {
@@ -89,13 +90,13 @@ export async function main (
 
 /** @internal */
 export const pre_serves = ({
-        http = serve,
-        https = serveTLS,
+        http = Deno.listen,
+        https = Deno.listenTls,
         read_file = Deno.readTextFile,
         info = console.info,
 }) => ({
 
-    serve_http: (opts: Opts) => new Promise<Server>((resolve, reject) => {
+    serve_http: (opts: Opts) => new Promise<Deno.Listener>((resolve, reject) => {
 
         const port = port_verify(opts.port?.http) ?? 0;
 
@@ -150,22 +151,24 @@ export function pre_on_request({
 
         const check = auth && await verify(toFileUrl(toAbsolute(auth)));
 
-        return function (req: ServerRequest): void {
+        return function (event: Deno.RequestEvent) {
 
-            if (req.method !== 'CONNECT') {
-                return void req.respond({ status: 204 });
+            const { request, respondWith } = event;
+
+            if (request.method !== 'CONNECT') {
+                return respondWith(new Response(null, { status: 204 }));
             }
 
-            if (check && check(req.headers) === false) {
-                return void req.respond(auth_failure);
+            if (check && check(request.headers) === false) {
+                return respondWith(auth_failure);
             }
 
-            const url = new URL(`http://${ req.url }`);
+            const url = new URL(request.url);
 
             const { hostname } = url;
             const port = port_normalize(url);
 
-            tunnel (port, hostname) (req.conn, timeout);
+            return tunnel (port, hostname) (event, timeout);
 
         };
 
@@ -176,8 +179,7 @@ export function pre_on_request({
 
 
 
-
-const established = new TextEncoder().encode('HTTP/1.0 200\r\n\r\n');
+const succeed = new Response(null, { status: 200 });
 
 const tunnel_to = pre_tunnel_to({});
 
@@ -186,14 +188,15 @@ export type Conn = TransformStream<Uint8Array, Uint8Array> & Deno.Closer;
 /** @internal */
 export function pre_tunnel_to ({
         connect = Deno.connect as (_: Deno.ConnectOptions) => Promise<Conn>,
+        upgrade = Deno.upgradeHttp,
         ignoring = ignores,
-        head = established,
+        established = succeed,
         error = console.error,
 }) {
 
     return function (port: number, hostname: string) {
 
-        return async function (res: Conn, timeout = 0) {
+        return async function (event: Deno.RequestEvent, timeout = 0) {
 
             const ctrl = new AbortController();
             const { signal } = ctrl;
@@ -210,21 +213,28 @@ export function pre_tunnel_to ({
                     : conn
                 );
 
-                const all_readable = readableStreamFromIterable(
-                    abortableAsyncIterable(
-                        prepend(head, req.readable),
+                const [ [ res, init ] ] = await Promise.all([
+                    upgrade(event.request),
+                    event.respondWith(established),
+                ]);
+
+                const all_readable = init.length < 1
+                    ? res.readable
+                    : readableStreamFromIterable(abortableAsyncIterable(
+                        prepend(init, res.readable),
                         signal,
-                    ),
-                );
+                      ))
+                ;
 
                 await Promise.all([
 
-                    all_readable.pipeTo(res.writable, { signal }),
-                    res.readable.pipeTo(req.writable, { signal }),
+                    req.readable.pipeTo(res.writable, { signal }),
+                    all_readable.pipeTo(req.writable, { signal }),
 
                 ]).finally(() => {
 
                     try_close(req);
+                    try_close(res);
 
                 });
 
@@ -237,7 +247,6 @@ export function pre_tunnel_to ({
             } finally {
 
                 ctrl.abort();
-                try_close(res);
 
             }
 
@@ -328,11 +337,11 @@ export function ignores (e: unknown) {
 
 
 
-const auth_failure: Response = {
+const auth_failure = new Response(null, {
     status: 407,
     statusText: 'Proxy Authentication Required',
     headers: new Headers({ 'Proxy-Authenticate': 'proxy auth' }),
-};
+});
 
 
 
@@ -429,6 +438,9 @@ function catch_iterable_when (predicate: (_: unknown) => boolean) {
 export const catch_abortable = catch_iterable_when((err): err is Error => {
     return err instanceof Error && err.name === 'AbortError';
 });
+
+/** @internal */
+export const catch_all = catch_iterable_when(() => true);
 
 
 
